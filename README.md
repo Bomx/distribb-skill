@@ -1,54 +1,67 @@
-# Distribb CLI & OpenClaw Skill
+# Distribb SEO Skill
 
-Command-line interface for the [Distribb](https://distribb.io) SEO API. Works with OpenClaw, Claude Code, and any AI agent.
-
-## What is Distribb?
-
-Distribb automates SEO: keyword research, article publishing to your CMS (WordPress, Webflow, Shopify), high-DR backlink exchange, internal linking, and social media repurposing. The Agentic Mode lets you use your own AI to write content while Distribb handles everything else.
+SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: keyword data, original research, backlinks from real businesses, CMS publishing, and analytics.
 
 ## Quick Start
 
 ```bash
-pip install requests python-dotenv
+pip install requests beautifulsoup4 openai python-dotenv
 export DISTRIBB_API_KEY=your_key_here
-
-python3 distribb_cli.py projects:list
-python3 distribb_cli.py keywords:search --project-id 42 --keyword "your topic"
-python3 distribb_cli.py articles:create --project-id 42 --keyword "your keyword" --content-file article.html --status Planned
+export OPENAI_API_KEY=your_openai_key_here
 ```
+
+## What's Included
+
+| File | Purpose |
+|------|---------|
+| `SKILL.md` | OpenClaw/Claude Code skill definition with full workflow and guidelines |
+| `distribb_cli.py` | CLI wrapping all Distribb API endpoints |
+| `distribb_research.py` | Original research agent. Searches the web, scrapes real data, produces data tables and findings. Runs locally with your AI. |
+| `distribb_writer.py` | Reference article writer. Generates SEO-optimized articles using Distribb's API for context, links, and backlinks. |
+
+## Commands
+
+```bash
+# Projects
+python3 distribb_cli.py projects:list
+python3 distribb_cli.py context:get --project-id 42
+
+# Keywords
+python3 distribb_cli.py keywords:search --project-id 42 --keyword "crm software"
+
+# Original Research (runs locally with your AI)
+python3 distribb_research.py --keyword "best crm tools" --style Listicle --output research.html
+
+# Internal Links & Backlinks
+python3 distribb_cli.py internal-links:get --project-id 42 --keyword "crm software"
+python3 distribb_cli.py backlinks:targets --project-id 42 --keyword "crm software"
+python3 distribb_cli.py backlinks:status --project-id 42
+
+# Articles
+python3 distribb_cli.py articles:create --project-id 42 --keyword "best crm" --title "Best CRM" --content-file article.html
+python3 distribb_cli.py articles:list --project-id 42
+python3 distribb_cli.py articles:get --article-id 123
+python3 distribb_cli.py articles:publish --article-id 123
+
+# Reference Writer (full pipeline: context + links + AI + submit)
+python3 distribb_writer.py --keyword "best crm tools" --project-id 42
+
+# Integrations
+python3 distribb_cli.py integrations:list --project-id 42
+```
+
+## Backlink Exchange
+
+Distribb connects real businesses that exchange backlinks. When your article includes a link to a network partner, Distribb detects it on submission and credits your project. More backlinks given = more received. These are high-DR backlinks from legitimate business websites.
 
 ## OpenClaw Installation
 
 ```bash
-npx playbooks add skill distribb/distribb-skill --skill distribb
+claw install distribb
 ```
 
-## Commands
+Or manually clone this repo and point your agent to `SKILL.md`.
 
-| Command | Description |
-|---------|-------------|
-| `projects:list` | List active projects |
-| `context:get` | Get business context, competitors, instructions |
-| `keywords:search` | Find keywords with volume and difficulty |
-| `internal-links:get` | Get published articles for cross-linking |
-| `backlinks:targets` | Get backlink exchange URLs from the network |
-| `backlinks:status` | Check backlink credits |
-| `articles:create` | Submit an article to Distribb |
-| `articles:list` | List articles |
-| `articles:get` | Get article details |
-| `articles:publish` | Publish to CMS |
-| `integrations:list` | List connected platforms |
+## Get an API Key
 
-## How the Backlink Exchange Works
-
-Distribb runs a backlink exchange network. When your article includes a link to another network member's site, you earn credits. Credits let your site receive backlinks from other members' articles. The more you give, the more you get.
-
-## Get Your API Key
-
-1. Sign up at [distribb.io/signup?plan=AGENTIC](https://distribb.io/signup?plan=AGENTIC)
-2. Go to Settings
-3. Copy your API key
-
-## License
-
-MIT
+Sign up at [distribb.io/agentic](https://distribb.io/agentic). 3-day free trial, $29/mo. Your API key is in Settings after signup.
