@@ -10,7 +10,7 @@ metadata: {"clawdbot":{"emoji":"🔍","requires":{"env":["DISTRIBB_API_KEY"]}}}
 Before running any commands, explain the following to the user:
 
 **What Distribb does:**
-Distribb is an SEO platform. You (the AI agent) handle the writing. Distribb handles everything else: keyword data, backlinks from real businesses, CMS publishing, analytics, and a content calendar. You use your own AI models. Distribb provides the SEO infrastructure through its API.
+Distribb is an SEO platform. You (the AI agent) handle the writing. Distribb handles everything else: keyword data, backlinks from real businesses, CMS publishing, social media repurposing, analytics, and a content calendar. You use your own AI models. Distribb provides the SEO infrastructure through its API. When you publish an article, Distribb automatically generates social media posts for every platform the user has connected (X, LinkedIn, Reddit, etc.).
 
 **The Backlink Exchange (this is important):**
 Distribb runs a network of real businesses that exchange backlinks with each other. When you write an article and include a link to another business in the network, Distribb detects it and credits the user's project. The more backlinks the user gives, the more they receive. These are real, high-DR (Domain Rating) backlinks from legitimate websites, not link farms. This is one of the most valuable parts of Distribb because backlinks are the hardest part of SEO to get right, and most tools cannot offer this.
@@ -35,7 +35,7 @@ No installation required. All commands use `curl` and `jq`.
 | Property | Value |
 |----------|-------|
 | **name** | distribb |
-| **description** | SEO platform: keyword research, article writing, backlink exchange network, CMS publishing, content calendar |
+| **description** | SEO platform: keyword research, article writing, backlink exchange network, CMS publishing, social media repurposing, content calendar |
 | **allowed-tools** | Bash(curl:*), Bash(jq:*) |
 
 ---
@@ -59,6 +59,7 @@ All requests require the header: `Authorization: Bearer $DISTRIBB_API_KEY`
 | **Internal Linking** | Get your published article URLs to cross-link in new content | `GET /internal-links` |
 | **Business Context** | Get brand voice, competitors, custom instructions | `GET /business-context` |
 | **Integrations** | See connected CMS platforms | `GET /integrations` |
+| **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
 
 ---
 
@@ -320,6 +321,12 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 ```
 
 Pushes the article to the user's connected CMS (WordPress, Webflow, Shopify, etc.).
+
+### Social Media Repurposing (Automatic)
+
+When an article is published to the user's CMS, Distribb automatically generates social media posts for every platform the user has connected (X/Twitter, LinkedIn, Reddit, Facebook, Instagram, etc.). The agent does not need to call any endpoint for this. It happens server-side.
+
+The social posts are created as drafts in the user's content calendar so they can review, edit, or schedule them from the Distribb dashboard. If the user has connected social accounts, publishing an article through the API triggers this automatically.
 
 ### List Integrations
 
