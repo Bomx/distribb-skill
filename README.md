@@ -1,53 +1,57 @@
 # Distribb SEO Skill
 
-SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: keyword data, original research, backlinks from real businesses, CMS publishing, and analytics.
+SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: keyword data, backlinks from real businesses, CMS publishing, and analytics.
 
 ## Quick Start
 
 ```bash
-pip install requests beautifulsoup4 openai python-dotenv
 export DISTRIBB_API_KEY=your_key_here
-export OPENAI_API_KEY=your_openai_key_here
 ```
 
-## What's Included
-
-| File | Purpose |
-|------|---------|
-| `SKILL.md` | OpenClaw/Claude Code skill definition with full workflow and guidelines |
-| `distribb_cli.py` | CLI wrapping all Distribb API endpoints |
-| `distribb_research.py` | Original research agent. Searches the web, scrapes real data, produces data tables and findings. Runs locally with your AI. |
-| `distribb_writer.py` | Reference article writer. Generates SEO-optimized articles using Distribb's API for context, links, and backlinks. |
+No installation required. The skill uses `curl` and `jq` to interact with the Distribb API.
 
 ## Commands
 
 ```bash
 # Projects
-python3 distribb_cli.py projects:list
-python3 distribb_cli.py context:get --project-id 42
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/projects | jq .
 
-# Keywords
-python3 distribb_cli.py keywords:search --project-id 42 --keyword "crm software"
+# Business context (brand voice, competitors, custom instructions)
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/business-context?project_id=42" | jq .
 
-# Original Research (runs locally with your AI)
-python3 distribb_research.py --keyword "best crm tools" --style Listicle --output research.html
+# Keyword research
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"keyword": "crm software", "project_id": 42}' \
+  https://distribb.io/api/v1/keywords/search | jq .
 
-# Internal Links & Backlinks
-python3 distribb_cli.py internal-links:get --project-id 42 --keyword "crm software"
-python3 distribb_cli.py backlinks:targets --project-id 42 --keyword "crm software"
-python3 distribb_cli.py backlinks:status --project-id 42
+# Internal links
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/internal-links?project_id=42&keyword=crm+software" | jq .
 
-# Articles
-python3 distribb_cli.py articles:create --project-id 42 --keyword "best crm" --title "Best CRM" --content-file article.html
-python3 distribb_cli.py articles:list --project-id 42
-python3 distribb_cli.py articles:get --article-id 123
-python3 distribb_cli.py articles:publish --article-id 123
+# Backlink targets
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/backlink-targets?project_id=42&keyword=crm+software" | jq .
 
-# Reference Writer (full pipeline: context + links + AI + submit)
-python3 distribb_writer.py --keyword "best crm tools" --project-id 42
+# Create article
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "keyword": "best crm", "title": "Best CRM", "content": "<h2>...</h2>", "status": "Draft"}' \
+  https://distribb.io/api/v1/articles | jq .
+
+# List articles
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/articles?project_id=42" | jq .
+
+# Publish to CMS
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/articles/123/publish | jq .
 
 # Integrations
-python3 distribb_cli.py integrations:list --project-id 42
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/integrations?project_id=42" | jq .
 ```
 
 ## Backlink Exchange
@@ -64,4 +68,4 @@ Or manually clone this repo and point your agent to `SKILL.md`.
 
 ## Get an API Key
 
-Sign up at [distribb.io/agentic](https://distribb.io/agentic). 3-day free trial, $29/mo. Your API key is in Settings after signup.
+Sign up at [distribb.io/agentic](https://distribb.io/agentic). 3-day free trial, $49/mo. Your API key is in Settings after signup.
