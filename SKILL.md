@@ -55,7 +55,7 @@ All requests require the header: `Authorization: Bearer $DISTRIBB_API_KEY`
 | **Keyword Research** | Search volume, difficulty scores, keyword ideas from DataForSEO | `POST /keywords/search` |
 | **Backlink Exchange** | Get real backlinks from other businesses in the network | `GET /backlink-targets` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
-| **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles` |
+| **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `PUT /articles/:id` |
 | **Internal Linking** | Get your published article URLs to cross-link in new content | `GET /internal-links` |
 | **Business Context** | Get brand voice, competitors, custom instructions | `GET /business-context` |
 | **Integrations** | See connected CMS platforms | `GET /integrations` |
@@ -86,12 +86,14 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/internal-links?project_id=42&keyword=crm+software" | jq .
 
-# 5. BACKLINK TARGETS: Get network URLs to include as references
+# 5. BACKLINK TARGETS (REQUIRED if BecklinksNetworkParticipation is "Yes")
+# This is how the user earns backlinks from real businesses. Do NOT skip this step.
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/backlink-targets?project_id=42&keyword=crm+software" | jq .
 
 # 6. WRITE THE ARTICLE using your AI, weaving in internal links + backlink targets
 # Output valid HTML. Follow the SEO writing guidelines below.
+# You MUST include 1-2 URLs from the backlink-targets response as natural references.
 
 # 7. SUBMIT: Save to Distribb's content calendar
 curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
@@ -135,11 +137,14 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
       "Language": "English (US)",
       "Status": "Active",
       "BacklinkCredits": 10,
+      "BecklinksNetworkParticipation": "Yes",
       "ArticlesPerDay": 1
     }
   ]
 }
 ```
+
+**IMPORTANT:** Check the `BecklinksNetworkParticipation` field. If it is `"Yes"`, this project is part of the backlink exchange network. You MUST call `/backlink-targets` before writing each article and include 1-2 target URLs in the content. This is how the user earns backlinks from other real businesses. Skipping this means the user gives nothing and receives nothing from the network.
 
 ### Business Context
 
@@ -246,8 +251,6 @@ Distribb connects real businesses that exchange backlinks with each other. When 
 
 Include 1-2 backlink targets per article as natural references. Do NOT fabricate information about linked sites. Use topically relevant anchor text.
 
-If the article creation response includes a `backlinks_warning`, the article had no network backlinks. Revise to include some from the targets list.
-
 ### Create Article
 
 ```bash
@@ -277,6 +280,25 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 }
 ```
 
+**If the article contained NO network backlinks, the response includes a warning:**
+```json
+{
+  "article_id": 124,
+  "status": "Draft",
+  "keyword": "crm for freelancers",
+  "slug": "crm-for-freelancers",
+  "message": "Article created as Draft.",
+  "backlinks_processed": 0,
+  "backlinks_warning": "Your project participates in the backlinks network but this article contains no backlinks to other network members. Include backlink targets (from GET /api/v1/backlink-targets) to earn credits and keep receiving backlinks."
+}
+```
+
+**IMPORTANT:** If `backlinks_warning` is present in the response:
+1. Call `GET /backlink-targets` to fetch network URLs for the article's keyword.
+2. Revise the article content to naturally include 1-2 of those URLs.
+3. Call `PUT /api/v1/articles/{article_id}` with the revised content.
+4. If the user has disabled automatic revision, inform them: "This article doesn't include any backlinks to the exchange network. You won't earn backlink credits for it, which means fewer backlinks from other businesses."
+
 For long articles, write the HTML to a file and use `@` syntax:
 
 ```bash
@@ -293,6 +315,33 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 ```
 
 Articles with `status: Planned` and a `scheduled_date` auto-publish when the date arrives. Use `status: Draft` if the user wants to review first.
+
+### Update Article
+
+Use this to revise an article after submission, for example to add backlink targets if the creation response included a `backlinks_warning`.
+
+```bash
+curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg content "$(cat revised-article.html)" '{
+    "content": $content
+  }')" \
+  https://distribb.io/api/v1/articles/123 | jq .
+```
+
+**Updatable fields:** `title`, `content`, `meta_description`, `status` (Draft or Planned), `scheduled_date`. Send only the fields you want to change.
+
+**Response (200):**
+```json
+{
+  "article_id": 123,
+  "updated_fields": ["Content", "IsPreGenerated"],
+  "message": "Article updated successfully.",
+  "backlinks_processed": 2
+}
+```
+
+If content is updated and the project participates in the backlink network, Distribb re-scans for network backlinks and updates credits. You cannot update published articles.
 
 ### List Articles
 
@@ -361,11 +410,13 @@ Never start sections with "In today's..." or "When it comes to...". Start with a
 - Space links at least 2 paragraphs apart.
 - Format: `<a href="https://site.com/exact-url">descriptive anchor text</a>`
 
-### Backlink Exchange
-- Include 1-2 URLs from `/backlink-targets` as natural references.
-- Do NOT fabricate information about linked sites.
-- Use topically relevant anchor text.
-- Distribb detects these on submission and credits the user's project.
+### Backlink Exchange (Critical for SEO growth)
+- ALWAYS call `GET /backlink-targets` before writing if the project has `BecklinksNetworkParticipation: "Yes"`.
+- Include 1-2 URLs from the response as natural references in the body of your article.
+- Do NOT fabricate information about linked sites. Read the `title` and `meta_description` to understand what the page covers and reference it honestly.
+- Use topically relevant anchor text (not "click here" or the raw URL).
+- Distribb scans the HTML on submission and automatically credits the user's project (+1 credit per backlink given). More credits = more backlinks received from the network.
+- If you submit an article without network backlinks, the API returns a `backlinks_warning`. Inform the user.
 
 ### Competitor Protection
 - Check competitors from `/business-context`.
@@ -400,14 +451,14 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/internal-links?project_id=42&keyword=best+crm+for+small+business" | jq .
 # Got 5 links to include
 
-# Step 5: Get backlink targets
+# Step 5: Get backlink targets (REQUIRED - project has BecklinksNetworkParticipation: "Yes")
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/backlink-targets?project_id=42&keyword=best+crm+for+small+business" | jq .
-# Got 3 targets to weave in naturally
+# Got 3 targets. MUST include 1-2 in the article to earn backlink credits.
 
 # Step 6: Write the article (using your AI)
 # - Include 5 internal links from step 4
-# - Include 1-2 backlink targets from step 5 as natural references
+# - Include 1-2 backlink target URLs from step 5 as natural references (mandatory)
 # - Follow the SEO writing guidelines above
 # - Never link to hubspot.com or salesforce.com (competitors)
 # - Output valid HTML
@@ -459,7 +510,7 @@ All error responses return JSON:
 |----------|-------|
 | `GET /projects`, `GET /articles`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status` | 30 req/min |
 | `POST /keywords/search`, `GET /internal-links`, `GET /backlink-targets`, `POST /articles/:id/publish` | 5-10 req/min |
-| `POST /articles` | 10 req/min |
+| `POST /articles`, `PUT /articles/:id` | 10 req/min |
 
 ---
 
@@ -468,6 +519,7 @@ All error responses return JSON:
 - Always call `/business-context` first to understand the brand voice, competitors, and custom instructions.
 - The `/internal-links` response tells you exactly how many links to include (`num_links_recommended`).
 - Check `/backlinks/status` to see how many credits the project has. More credits = more backlinks received.
+- NEVER skip `/backlink-targets` when `BecklinksNetworkParticipation` is `"Yes"`. This is the single most impactful SEO feature for the user. Articles without network backlinks do not earn credits.
 - Articles with `status: Planned` and a `scheduled_date` auto-publish. Use `status: Draft` if the user wants to review first.
 - All API responses are JSON. Parse them with `jq` to extract IDs, URLs, and data for the next step.
 - For long article HTML, write to a file first, then use `jq -n --arg content "$(cat article.html)"` to safely encode.

@@ -41,6 +41,12 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   -d '{"project_id": 42, "keyword": "best crm", "title": "Best CRM", "content": "<h2>...</h2>", "status": "Draft"}' \
   https://distribb.io/api/v1/articles | jq .
 
+# Update article (e.g. add backlink targets after submission)
+curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "<h2>Revised...</h2>"}' \
+  https://distribb.io/api/v1/articles/123 | jq .
+
 # List articles
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/articles?project_id=42" | jq .
