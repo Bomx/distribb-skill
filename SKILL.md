@@ -36,7 +36,7 @@ No installation required. All commands use `curl` and `jq`.
 |----------|-------|
 | **name** | distribb |
 | **description** | SEO platform: keyword research, article writing, backlink exchange network, CMS publishing, social media repurposing, content calendar |
-| **allowed-tools** | Bash(curl:*), Bash(jq:*) |
+| **allowed-tools** | Bash(curl:*), Bash(jq:*), Bash(cat:*) |
 
 ---
 
@@ -48,11 +48,25 @@ All requests require the header: `Authorization: Bearer $DISTRIBB_API_KEY`
 
 ---
 
+## Validate Your API Key
+
+Before running any workflow, verify your API key works:
+
+```bash
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/projects | jq .
+```
+
+If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account is not active."}`, the key is wrong or the account is inactive. Ask the user to check their API key in Settings at https://distribb.io/settings.
+
+---
+
 ## What You Get
 
 | Capability | How It Works | Endpoint |
 |------------|-------------|----------|
-| **Keyword Research** | Search volume, difficulty scores, keyword ideas from DataForSEO | `POST /keywords/search` |
+| **Generate Article** | Submit source content, Distribb AI expands into full SEO article (Pro plan only) | `POST /articles/generate` |
+| **Keyword Research** | Search volume, difficulty scores, keyword ideas from DataForSEO | `POST /keywords/search` (alias: `POST /keywords/research`) |
 | **Backlink Exchange** | Get real backlinks from other businesses in the network | `GET /backlink-targets` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
 | **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `PUT /articles/:id` |
@@ -241,6 +255,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
       "project_name": "Partner Co"
     }
   ],
+  "category": "saas",
   "credits": 10,
   "instructions": "Include 1-2 of these URLs as natural references..."
 }
@@ -249,7 +264,38 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 **How the backlink exchange works:**
 Distribb connects real businesses that exchange backlinks with each other. When you include a link to a network partner in your article, Distribb detects it on submission and credits the user's project. The more backlinks the user gives out, the more they receive in return. These are high-quality, high-DR backlinks from real business websites.
 
-Include 1-2 backlink targets per article as natural references. Do NOT fabricate information about linked sites. Use topically relevant anchor text.
+The `category` field shows how the keyword was classified (e.g. "saas", "ecommerce"). Targets are capped at 5 per request. Include 1-2 backlink targets per article as natural references. Do NOT fabricate information about linked sites. Use topically relevant anchor text.
+
+### Generate Article (Pro plan only)
+
+If the user wants Distribb to write the article from their source content (notes, drafts, talking points), use this endpoint. Distribb's AI will expand it into a full SEO article with YouTube videos, images, quotes, backlinks, and internal links. Costs 1 article credit. Not available on the Agentic plan.
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": 42,
+    "keyword": "link building strategies",
+    "source_content": "Link building is about getting other websites to link to yours. Three main approaches: guest posting, broken link building, and creating linkable assets like original research...",
+    "instructions": "Add YouTube videos, include data and statistics",
+    "article_style": "Informative"
+  }' \
+  https://distribb.io/api/v1/articles/generate | jq .
+```
+
+**Response (202):**
+```json
+{
+  "article_id": 456,
+  "status": "generating",
+  "keyword": "link building strategies",
+  "slug": "link-building-strategies",
+  "message": "Article generation started...",
+  "article_credits_remaining": 29
+}
+```
+
+The article takes a few minutes to generate. Poll `GET /api/v1/articles/456` to check when `Status` changes from `Planned` to `Draft` or `Published`.
 
 ### Create Article
 
@@ -346,14 +392,20 @@ If content is updated and the project participates in the backlink network, Dist
 ### List Articles
 
 ```bash
-# All articles for a project
+# All articles for a project (default: 50 per page)
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/articles?project_id=42" | jq .
 
 # Filter by status
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/articles?project_id=42&status=Published" | jq .
+
+# Pagination: use limit (max 200) and offset
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/articles?project_id=42&limit=20&offset=40" | jq .
 ```
+
+**Query parameters:** `project_id` (optional), `status` (optional: Draft, Planned, Published), `limit` (default 50, max 200), `offset` (default 0).
 
 ### Get Single Article
 
@@ -369,7 +421,7 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123/publish | jq .
 ```
 
-Pushes the article to the user's connected CMS (WordPress, Webflow, Shopify, etc.).
+Pushes the article to the user's connected CMS (WordPress, Webflow, Shopify, etc.). Returns `200` on success. If the CMS publish fails, returns `202` meaning the article was queued as `Planned` and will be retried automatically -- the article is NOT lost.
 
 ### Social Media Repurposing (Automatic)
 
@@ -497,10 +549,22 @@ All error responses return JSON:
 |-------------|---------|
 | 400 | Bad request. Missing or invalid parameters. |
 | 401 | Unauthorized. Invalid or missing API key. |
-| 403 | Forbidden. Resource does not belong to your account. |
-| 404 | Not found. Resource does not exist. |
-| 429 | Rate limited. Too many requests, wait and retry. |
-| 500 | Server error. Something went wrong on our end. |
+| 404 | Not found. Resource does not exist or does not belong to your account. |
+| 429 | Rate limited. Too many requests -- wait and retry with exponential backoff (see below). |
+| 500 | Server error. Something went wrong on our end. Retry once after 5 seconds. |
+| 202 | Accepted but not fully completed. Only returned by `POST /articles/:id/publish` when CMS publishing was queued but not confirmed. The article status was set to `Planned` and will be retried automatically. |
+| 503 | Service temporarily unavailable. External service (DataForSEO, CMS) is down. Retry after 30 seconds. |
+
+### Handling 429 Rate Limits
+
+When you get a 429, use exponential backoff:
+
+```bash
+# Wait 10 seconds, then retry. If still 429, wait 20s, then 40s.
+sleep 10
+```
+
+Do NOT hammer the API in a loop. Space out requests by at least 2 seconds when making multiple sequential calls.
 
 ---
 
@@ -508,9 +572,11 @@ All error responses return JSON:
 
 | Endpoint | Limit |
 |----------|-------|
-| `GET /projects`, `GET /articles`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status` | 30 req/min |
-| `POST /keywords/search`, `GET /internal-links`, `GET /backlink-targets`, `POST /articles/:id/publish` | 5-10 req/min |
+| `GET /projects`, `GET /articles`, `GET /articles/:id`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status` | 30 req/min |
+| `POST /keywords/search`, `POST /keywords/research` | 5 req/min |
+| `GET /internal-links`, `GET /backlink-targets` | 10 req/min |
 | `POST /articles`, `PUT /articles/:id` | 10 req/min |
+| `POST /articles/:id/publish` | 5 req/min |
 
 ---
 

@@ -1,3 +1,9 @@
+## Install as a skill
+
+```bash
+npx skills add Bomx/distribb-skill
+```
+
 # Distribb SEO Skill
 
 SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: keyword data, backlinks from real businesses, CMS publishing, and analytics.
@@ -64,14 +70,12 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 Distribb connects real businesses that exchange backlinks. When your article includes a link to a network partner, Distribb detects it on submission and credits your project. More backlinks given = more received. These are high-DR backlinks from legitimate business websites.
 
-## OpenClaw Installation
+## MCP Server (Cursor / Claude Desktop)
 
-```bash
-claw install distribb
-```
+The MCP server exposes every Distribb endpoint as a native tool that Claude, Cursor, and other MCP clients can call directly.
 
-Or manually clone this repo and point your agent to `SKILL.md`.
+See the [API docs](https://distribb.io/api-docs#ep-mcp) for MCP setup instructions.
 
 ## Get an API Key
 
-Sign up at [distribb.io/agentic](https://distribb.io/agentic). 3-day free trial, $49/mo. Your API key is in Settings after signup.
+Sign up at [distribb.io](https://distribb.io). Your API key is in Settings after signup.
