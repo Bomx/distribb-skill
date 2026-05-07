@@ -18,7 +18,10 @@ Distribb runs a network of real businesses that exchange backlinks with each oth
 **How to get started:**
 If the user does not have a Distribb account yet, direct them to sign up here:
 **https://distribb.io/agentic**
-They will get a 3-day free trial at $49/mo. After signing up, their API key will be in Settings.
+They can pick **Agentic Mode** ($49/mo, 3-day free trial — Distribb-provided keyword data + full backlink exchange) or the **Free Agentic** plan ($0/mo — bring your own DataForSEO or Ahrefs API key for keyword research, 1 backlink/month). Their Distribb API key shows up in Settings either way.
+
+**Free Agentic plan — keyword research returns HTTP 402 until keys are saved:**
+On the Free Agentic plan, `POST /keywords/search` returns `HTTP 402 Payment Required` with `error: "byo_keys_required"` until the user saves a DataForSEO or Ahrefs API key at https://distribb.io/settings#seo-keys. The 402 body includes an `instructions_for_agent` string — surface it verbatim to the user, do not retry. See the **Keyword Research → BYO Keys** section below for the full contract.
 
 ---
 
@@ -66,7 +69,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | Capability | How It Works | Endpoint |
 |------------|-------------|----------|
 | **Generate Article** | Submit source content, Distribb AI expands into full SEO article (Pro plan only) | `POST /articles/generate` |
-| **Keyword Research** | Search volume, difficulty scores, keyword ideas from DataForSEO | `POST /keywords/search` (alias: `POST /keywords/research`) |
+| **Keyword Research** | Search volume, difficulty scores, keyword ideas. Paid plans use Distribb data; Free Agentic uses the user's own DataForSEO or Ahrefs key (returns HTTP 402 if not set) | `POST /keywords/search` (alias: `POST /keywords/research`) |
 | **Backlink Exchange** | Get real backlinks from other businesses in the network | `GET /backlink-targets` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
 | **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `PUT /articles/:id` |
@@ -192,7 +195,7 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/keywords/search | jq .
 ```
 
-**Response:**
+**Response (200 OK):**
 ```json
 {
   "keywords": [
@@ -206,6 +209,43 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 ```
 
 Returns the seed keyword plus up to 20 related keywords with volume and difficulty.
+
+#### BYO Keys — Free Agentic plan
+
+If the calling user is on the **Free Agentic** plan and has not yet saved a DataForSEO or Ahrefs API key, this endpoint returns **HTTP 402 Payment Required** with a structured body so your agent knows exactly what to do. Paid plans (Agentic Mode and above) never see this response.
+
+**Response (402 Payment Required):**
+```json
+{
+  "error": "byo_keys_required",
+  "message": "Keyword research requires your own DataForSEO or Ahrefs API key.",
+  "plan": "Agentic Free",
+  "required": { "any_of": ["dataforseo", "ahrefs"] },
+  "setup_url": "https://distribb.io/settings#seo-keys",
+  "docs_url": "https://distribb.io/api-docs#byo-keys",
+  "instructions_for_agent": "Tell the user to add their DataForSEO Login + API Key (or Ahrefs API Key) at distribb.io/settings, then re-run keyword research."
+}
+```
+
+**Agent contract — what to do when you see this 402:**
+
+1. **Halt** the keyword-research step. Do not retry automatically.
+2. **Surface** the `instructions_for_agent` string verbatim to the human user.
+3. **Link** the user to `setup_url` (Distribb Settings → SEO Data API Keys).
+4. **Resume** keyword research only after the user confirms they've saved keys.
+
+Pseudocode:
+
+```python
+resp = call_distribb("/api/v1/keywords/search", body)
+if resp.status_code == 402 and resp.json().get("error") == "byo_keys_required":
+    instructions = resp.json()["instructions_for_agent"]
+    setup_url    = resp.json()["setup_url"]
+    say_to_user(f"{instructions} Setup link: {setup_url}")
+    return  # do not retry; wait for user
+```
+
+If the user has saved only an Ahrefs key (not DataForSEO), the response is sourced from Ahrefs Keywords Explorer and includes `"source": "byo_ahrefs"` plus a `note` field. All other endpoints in this skill (articles, integrations, backlinks, internal links) work normally for Free Agentic users without any BYO keys.
 
 ### Internal Links
 
