@@ -577,6 +577,125 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 ---
 
+## Workflow: AI Search Visibility & Listicle Backlink Outreach
+
+Use this workflow when the user asks you to:
+- "Find places where Distribb should be recommended by ChatGPT / Perplexity / Gemini / Claude / Google AI Overviews"
+- "Find listicles / round-ups / 'best tools' articles I should pitch to get Distribb added"
+- "Audit my AI search visibility" / "find AI SEO mentions"
+- "Build me a backlink outreach list for AI search"
+- Any variant of "where should I get mentioned so AI search recommends my product"
+
+This is a **3-phase research playbook**. You (the agent) act as an **AI search visibility strategist**. The deliverable is actionable enough for a VA or outreach person to execute without re-asking the user any questions.
+
+If the user is running this workflow for a project other than their own Distribb business, swap "Distribb" for the target project's business name and competitors from `GET /business-context?project_id=...`. Otherwise default to Distribb.io itself (a SaaS that does AI SEO keyword research, content writing/publishing, a backlink exchange network, social repurposing, and AI-search visibility).
+
+### Phase 1 — Identify buyer prompts
+
+Generate **at least 100 realistic prompts** that a potential Distribb buyer would type into ChatGPT, Perplexity, Gemini, Claude, or Google AI Overviews — prompts where Distribb *should* be recommended.
+
+Cover all of these prompt categories (≥10 per category):
+
+1. **"Best tools"** — e.g. "What are the best AI SEO tools for agencies?"
+2. **"Alternatives"** — e.g. "Best alternatives to Surfer SEO for automated content"
+3. **"Comparison"** — e.g. "Outranking vs Surfer SEO vs automated SEO tools"
+4. **"Problem-solving"** — e.g. "How do I automate SEO content and backlinks for my agency?"
+5. **"Agency-specific"** — e.g. "Best white-label SEO automation software for agencies"
+6. **"AI visibility / GEO"** — e.g. "How do I get my business recommended by ChatGPT?"
+7. **"Backlink automation"** — e.g. "Best tools to get backlinks without manual outreach"
+8. **"Content automation"** — e.g. "Best AI tools to write and publish SEO articles automatically"
+
+Bias toward **buying intent**, **comparison intent**, and **problem-aware intent**. Skip pure informational queries ("what is SEO").
+
+For **every** prompt, capture these columns:
+
+| Column | Notes |
+|---|---|
+| Prompt | The exact phrasing a buyer would type |
+| Search intent | Informational / Comparison / Transactional |
+| Buyer stage | Problem-aware / Solution-aware / Ready-to-buy |
+| Ideal Distribb angle | The single sentence positioning that should land in the AI answer |
+| Main competitors likely to appear | Surfer, Jasper, Frase, MarketMuse, Clearscope, Scalenut, Outranking, SE Ranking, Semrush, Ahrefs, KoalaWriter, NeuronWriter, Copy.ai, Writesonic, etc. |
+| Priority | 1–10 (10 = closest to ready-to-buy + highest commercial value) |
+| Why this prompt matters | One-line rationale |
+
+### Phase 2 — Run and analyze the top 30 prompts
+
+Take the **30 highest-priority prompts** from Phase 1 and actually run them. Use `WebSearch` and/or `WebFetch` against live AI-search-shaped queries — do not guess. For each, capture:
+
+| Column | Notes |
+|---|---|
+| Prompt | From Phase 1 |
+| Distribb appears? | Yes / No / Partial (e.g. mentioned but not recommended) |
+| Competitors that appear | List the actual names in the live answer |
+| Sources cited / referenced | URLs that the AI/SERP is citing — listicles, blogs, Reddit, YouTube, G2/Capterra, Product Hunt, company pages |
+| Article(s) most influencing the answer | The 1–3 URLs doing the heavy lifting |
+| Source type mix | SaaS review site / blog listicle / Reddit / YouTube / company page / forum / news |
+| What Distribb needs to be included or rank higher | Concrete gap: missing from listicle X, no Reddit mention, no comparison page, no G2 profile, etc. |
+
+**Hard rules for Phase 2:**
+- **Do not fabricate URLs, rankings, or citations.** If a prompt can't be run or a source can't be verified, write `unverified` in the cell and explain why in a footnote.
+- Cite source URLs in full.
+- If a result is from a cache and may be stale, say so.
+
+### Phase 3 — Third-party listicles to target for outreach
+
+For every Phase 2 prompt where **Distribb should appear but does not**, find the third-party pages already being cited or ranking. **Prioritize listicles, round-ups, comparison posts, and directories** over competitor homepages. Page archetypes to hunt for:
+
+- "Best AI SEO tools" / "Best AI SEO software"
+- "Best SEO automation tools"
+- "Best AI writing tools for SEO"
+- "Best [Competitor] alternatives" (Surfer, Jasper, Frase, MarketMuse, Clearscope, Scalenut, Outranking, KoalaWriter, NeuronWriter, etc.)
+- "Best SEO tools for agencies" / "white-label SEO software"
+- "Best backlink tools" / "Best link-building software"
+- "Best content marketing automation tools"
+- "Best tools to rank in AI search" / "GEO tools" / "tools to get mentioned by ChatGPT"
+- "Best programmatic SEO tools"
+- "Best SEO tools for startups"
+
+For each target page, capture:
+
+| Column | Notes |
+|---|---|
+| Article title | Exact title |
+| URL | Full URL |
+| Website / domain | Root domain |
+| Article category | One of the archetypes above |
+| Why it matters | Which AI answer or SERP it currently shapes |
+| Prompt(s) it could influence | Reference Phase 1 prompt numbers |
+| Current tools mentioned | The 5–15 tools already in the listicle |
+| Distribb currently included? | Yes / No / Briefly mentioned |
+| Outreach priority | High / Medium / Low |
+| Suggested pitch angle | One specific reason to add Distribb (e.g. "you cover Surfer + Frase but no tool in your list does the backlink exchange piece") |
+| Contact info | Contact page URL, author name, author email, or the "submit a tool" form URL — verified, not invented |
+| Personalization notes | Recent post by the author, the year of the listicle, the angle of their site, anything a VA can use in the first line |
+
+### Required output (in this exact order)
+
+1. **Table 1 — Top 100 prompts** (Phase 1, all columns).
+2. **Table 2 — Top 30 prompt tests** (Phase 2, all columns, with live source URLs).
+3. **Table 3 — Third-party listicles & sites to reach out to** (Phase 3, all columns).
+4. **Top 10 outreach opportunities** — ranked by *easiest win × highest impact*. For each: target URL, why it's the easiest win (e.g. author already updates the post yearly, accepts tool submissions, already mentions a Distribb-adjacent tool), and the suggested first-line of the pitch.
+
+### Operating rules (read before starting)
+
+- **Prioritize listicles and third-party articles, not competitor homepages.** A pitch to "add Distribb to your round-up" is far easier than dislodging a competitor's own site.
+- **Prioritize pages that already mention** Surfer SEO, Jasper, Copy.ai, Writesonic, Frase, MarketMuse, Clearscope, Scalenut, Outranking, SE Ranking, Semrush, Ahrefs, KoalaWriter, NeuronWriter, and similar — those authors have already decided this category is worth covering.
+- **Do not fabricate** URLs, rankings, citations, author emails, or DR/traffic numbers. If you can't verify, say `unverified` and explain.
+- **Think like a buyer, not like a keyword tool.** A keyword-volume prompt ("seo software") is less valuable than a buying-intent prompt ("best seo tool that also does backlinks for an agency").
+- **Focus on prompts where someone is close to buying software or hiring a solution.**
+- The final output should be **handover-ready** for a VA or outreach person — every row should be independently actionable.
+- This workflow is **research + strategy**, not publishing. Do **not** call any Distribb article-creation endpoints (`POST /articles`, `POST /articles/generate`, etc.) during this workflow. Output the tables to the user; let them decide what to do next (pitch the listicles manually, or feed them into a separate outreach workflow).
+
+### Tools to use
+
+- `WebSearch` for finding listicles and running buyer-intent queries.
+- `WebFetch` for reading the actual content of each candidate listicle (to confirm tools mentioned, find author/contact info, and check freshness).
+- `GET /business-context?project_id=...` if running this for a non-Distribb project, so competitor exclusions are respected.
+- Skip any Distribb write/publish endpoints — this workflow does not create articles.
+
+---
+
 ## Error Handling
 
 All error responses return JSON:
