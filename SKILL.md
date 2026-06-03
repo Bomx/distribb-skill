@@ -1,6 +1,6 @@
 ---
 name: distribb
-description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, internal linking, and social media repurposing. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, publish to their CMS, or manage their content calendar.
+description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, internal linking, social media repurposing, and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, publish to their CMS, manage their content calendar, or manage Microworkers campaigns.
 homepage: https://distribb.io
 metadata: {"clawdbot":{"emoji":"🔍","requires":{"env":["DISTRIBB_API_KEY"]}}}
 ---
@@ -10,7 +10,7 @@ metadata: {"clawdbot":{"emoji":"🔍","requires":{"env":["DISTRIBB_API_KEY"]}}}
 Before running any commands, explain the following to the user:
 
 **What Distribb does:**
-Distribb is an SEO platform. You (the AI agent) handle the writing. Distribb handles everything else: keyword data, backlinks from real businesses, CMS publishing, social media repurposing, analytics, and a content calendar. You use your own AI models. Distribb provides the SEO infrastructure through its API. When you publish an article, Distribb automatically generates social media posts for every platform the user has connected (X, LinkedIn, Reddit, etc.).
+Distribb is an SEO platform. You (the AI agent) handle the writing. Distribb handles everything else: keyword data, backlinks from real businesses, CMS publishing, social media repurposing, Microworkers campaign management, analytics, and a content calendar. You use your own AI models. Distribb provides the SEO infrastructure through its API. When you publish an article, Distribb automatically generates social media posts for every platform the user has connected (X, LinkedIn, Reddit, etc.).
 
 **The Backlink Exchange (this is important):**
 Distribb runs a network of real businesses that exchange backlinks with each other. When you write an article and include a link to another business in the network, Distribb detects it and credits the user's project. The more backlinks the user gives, the more they receive. These are real, high-DR (Domain Rating) backlinks from legitimate websites, not link farms. This is one of the most valuable parts of Distribb because backlinks are the hardest part of SEO to get right, and most tools cannot offer this.
@@ -72,11 +72,13 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Keyword Research** | Search volume, difficulty scores, keyword ideas. Paid plans use Distribb data; Free Agentic uses the user's own DataForSEO or Ahrefs key (returns HTTP 402 if not set) | `POST /keywords/search` (alias: `POST /keywords/research`) |
 | **Backlink Exchange** | Get real backlinks from other businesses in the network | `GET /backlink-targets` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
-| **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `PUT /articles/:id` |
+| **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id` |
+| **Project Settings** | Read & edit settings: custom article instructions, business description, publish time, timezone, backlink-network toggle | `GET /projects/:id`, `PUT /projects/:id` |
 | **Internal Linking** | Get your published article URLs to cross-link in new content | `GET /internal-links` |
 | **Business Context** | Get brand voice, competitors, custom instructions | `GET /business-context` |
 | **Integrations** | See connected CMS platforms | `GET /integrations` |
 | **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
+| **Microworkers Campaign Management** | Create/register campaigns, list submissions, and rate worker slots for Reddit, Quora, YouTube, or generic proof tasks | `GET/POST /microworkers/campaigns`, `GET /microworkers/campaigns/:id/slots`, `POST /microworkers/slots/:slot_id/rate` |
 
 ---
 
@@ -162,6 +164,49 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 ```
 
 **IMPORTANT:** Check the `BecklinksNetworkParticipation` field. If it is `"Yes"`, this project is part of the backlink exchange network. You MUST call `/backlink-targets` before writing each article and include 1-2 target URLs in the content. This is how the user earns backlinks from other real businesses. Skipping this means the user gives nothing and receives nothing from the network.
+
+### Project Settings (Read & Edit)
+
+Read a single project's settings, then change them — so you can manage a project end-to-end from the agent.
+
+```bash
+# Read current settings
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/projects/42 | jq .
+
+# Edit settings (send ONLY the fields you want to change)
+curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ai_instructions": "Write in a friendly, plain-English tone. Always include a pricing section.",
+    "business_description": "Acme is a CRM for small service businesses.",
+    "publish_time": "09:00",
+    "timezone": "America/New_York",
+    "backlinks_network": true
+  }' \
+  https://distribb.io/api/v1/projects/42 | jq .
+```
+
+**Editable fields:**
+
+| Field | Meaning |
+|-------|---------|
+| `ai_instructions` | The "Customize Article Instructions" field — custom writing guidelines applied to every article. |
+| `business_description` | What the business does (used as context when writing). |
+| `publish_time` | Daily auto-publish time, 24-hour `"HH:MM"`. |
+| `timezone` | IANA timezone name, e.g. `"Europe/Madrid"`. |
+| `backlinks_network` | `true`/`false` — join or leave the backlink exchange network. |
+
+**Response (200):**
+```json
+{
+  "project_id": 42,
+  "updated_fields": ["AIInstructions", "CustomPublishSchedule", "BecklinksNetworkParticipation"],
+  "message": "Project settings updated."
+}
+```
+
+**Note:** `articles_per_day` is controlled by the user's plan and **cannot** be changed via the API. If you send it, it's ignored and echoed back under `ignored`. You can still *read* it via `GET /api/v1/projects` and `GET /api/v1/projects/:id`.
 
 ### Business Context
 
@@ -415,7 +460,7 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123 | jq .
 ```
 
-**Updatable fields:** `title`, `content`, `meta_description`, `status` (Draft or Planned), `scheduled_date`. Send only the fields you want to change.
+**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`. Send only the fields you want to change. Changing `keyword` also regenerates the article's slug. To **unschedule** an article, send `"scheduled_date": null` — a `Planned` article drops back to `Draft` so it won't auto-publish.
 
 **Response (200):**
 ```json
@@ -428,6 +473,22 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 ```
 
 If content is updated and the project participates in the backlink network, Distribb re-scans for network backlinks and updates credits. You cannot update published articles.
+
+### Delete Article
+
+```bash
+curl -s -X DELETE -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/articles/123 | jq .
+```
+
+Deletes a `Draft` or `Planned` article. **Published articles cannot be deleted** (the live CMS post would be orphaned) — you get a `400`. Unpublish or hide it from the dashboard/CMS first, or simply unschedule it.
+
+**Response (200):**
+```json
+{ "article_id": 123, "deleted": true, "message": "Article deleted." }
+```
+
+To take an article off the calendar *without* deleting it, **unschedule** instead: `PUT /api/v1/articles/123` with body `{"scheduled_date": null}`.
 
 ### List Articles
 
@@ -475,6 +536,57 @@ The social posts are created as drafts in the user's content calendar so they ca
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/integrations?project_id=42" | jq .
 ```
+
+### Microworkers Campaign Management
+
+Use these endpoints to manage Microworkers Basic Campaigns through Distribb. Campaigns are project-scoped, so always pass `project_id` when creating or registering a campaign. Only rate a worker slot `OK` after the submitted proof has been verified.
+
+```bash
+# List registered campaigns
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/microworkers/campaigns?project_id=42" | jq .
+
+# Create a campaign with a Microworkers template
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg template_html "$(cat microworkers-template.html)" '{
+    "project_id": 42,
+    "title": "Post a Reddit Comment",
+    "description": "Follow the Distribb task page, post the exact comment, and submit the comment URL plus confirmation code.",
+    "template_html": $template_html,
+    "platform": "reddit",
+    "campaign_type": "reddit_comment",
+    "category_id": "4004",
+    "available_positions": 50,
+    "payment_per_task": 0.15,
+    "minutes_to_finish": 10
+  }')" \
+  https://distribb.io/api/v1/microworkers/campaigns | jq .
+
+# Register an existing campaign created by a VPS script
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "campaign_id": "123456", "platform": "reddit", "campaign_type": "reddit_comment"}' \
+  https://distribb.io/api/v1/microworkers/campaigns/register | jq .
+
+# Get live campaign details
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/microworkers/campaigns/123456 | jq .
+
+# List submitted slots that need rating
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/microworkers/campaigns/123456/slots?status=NOTRATED&pageSize=50" | jq .
+
+# Rate a slot after proof verification
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"campaign_id": "123456", "rating": "OK", "comment": "Proof verified. Thank you."}' \
+  https://distribb.io/api/v1/microworkers/slots/7890/rate | jq .
+```
+
+**Create campaign request fields:** `project_id`, `title`, `description`, and `template_html` are required. Optional fields: `platform`, `campaign_type`, `category_id`, `available_positions`, `payment_per_task` (minimum `0.15`), `minutes_to_finish`, `ttr`, `speed`, `template_title`, `number_of_file_proofs`, and `allowed_file_types`.
+
+**Rating rules:** `rating` must be `OK`, `NOK`, or `REVISE`. Use `NOK` with a clear worker-facing `comment` when proof is invalid. Use `REVISE` when the worker can fix the submission.
 
 ---
 
@@ -696,6 +808,18 @@ For each target page, capture:
 
 ---
 
+## Sub-skills
+
+This skill ships with structured sub-workflows for opinionated multi-week SEO programs. Load the matching sub-skill's `SKILL.md` instead of trying to run the workflow from this top-level file.
+
+| Sub-skill folder | When to invoke |
+|---|---|
+| [`90-day-seo-sprint/`](./90-day-seo-sprint/SKILL.md) | User asks for an SEO sprint, a 90-day SEO plan, an SEO tracker / roadmap, "where do I start with SEO", "how do I get my first 1,000 organic visitors", or anything similar. Sub-skill opens the Distribb tracker Google Sheet in their browser and walks them through 4 phases (Pre-launch / Foundation / Content Engine / Authority) using the API endpoints below. |
+
+If a sub-skill applies, **read its `SKILL.md` first** before calling any endpoint. Each sub-skill assumes you already have a Distribb API key set and the parent skill loaded for the actual API surface — sub-skills only add structure, content, and execution discipline.
+
+---
+
 ## Error Handling
 
 All error responses return JSON:
@@ -731,10 +855,10 @@ Do NOT hammer the API in a loop. Space out requests by at least 2 seconds when m
 
 | Endpoint | Limit |
 |----------|-------|
-| `GET /projects`, `GET /articles`, `GET /articles/:id`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status` | 30 req/min |
+| `GET /projects`, `GET /projects/:id`, `GET /articles`, `GET /articles/:id`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status` | 30 req/min |
 | `POST /keywords/search`, `POST /keywords/research` | 5 req/min |
 | `GET /internal-links`, `GET /backlink-targets` | 10 req/min |
-| `POST /articles`, `PUT /articles/:id` | 10 req/min |
+| `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id`, `PUT /projects/:id` | 10 req/min |
 | `POST /articles/:id/publish` | 5 req/min |
 
 ---
