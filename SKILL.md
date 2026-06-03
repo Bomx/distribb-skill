@@ -77,6 +77,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Internal Linking** | Get your published article URLs to cross-link in new content | `GET /internal-links` |
 | **Business Context** | Get brand voice, competitors, custom instructions | `GET /business-context` |
 | **Integrations** | See connected CMS platforms | `GET /integrations` |
+| **Google Search Console** | Pull the user's real GSC performance — top queries, top pages, clicks, impressions, CTR, position (if they've connected GSC) | `GET /search-console` |
 | **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
 | **Microworkers Campaign Management** | Create/register campaigns, list submissions, and rate worker slots for Reddit, Quora, YouTube, or generic proof tasks | `GET/POST /microworkers/campaigns`, `GET /microworkers/campaigns/:id/slots`, `POST /microworkers/slots/:slot_id/rate` |
 
@@ -537,6 +538,50 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/integrations?project_id=42" | jq .
 ```
 
+### Google Search Console
+
+Pull the user's **real** search performance from Google Search Console — top queries, top pages, and site totals (clicks, impressions, CTR, average position). Use it to find queries worth targeting, pages sitting just off page 1, or terms the user already ranks for. **Requires the user to have connected GSC.**
+
+```bash
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/search-console?project_id=42&days=28&limit=25" | jq .
+```
+
+**Query parameters:** `project_id` (required), `days` (default 28, max 90), `limit` (rows per list, default 25, max 100).
+
+**Response (200 — connected):**
+```json
+{
+  "connected": true,
+  "project_id": 42,
+  "property": "sc-domain:acme.com",
+  "date_range": { "start_date": "2026-05-06", "end_date": "2026-06-03", "days": 28 },
+  "totals": { "clicks": 1840, "impressions": 92344, "ctr": 0.0199, "avg_position": 18.4 },
+  "top_queries": [
+    { "query": "best crm for small business", "clicks": 210, "impressions": 8100, "ctr": 0.0259, "position": 7.2 }
+  ],
+  "top_pages": [
+    { "page": "https://acme.com/blog/crm-guide", "clicks": 320, "impressions": 14200, "ctr": 0.0225, "position": 9.1 }
+  ]
+}
+```
+
+**Response (200 — NOT connected):**
+```json
+{
+  "connected": false,
+  "message": "Google Search Console is not connected for this project.",
+  "instructions_for_agent": "Tell the user to connect Google Search Console at https://distribb.io/integrations ...",
+  "connect_url": "https://distribb.io/integrations"
+}
+```
+
+**Agent contract:**
+- If `connected` is `false`, **stop and tell the user the `instructions_for_agent` text verbatim**, link them to `connect_url` (https://distribb.io/integrations), and do not retry until they confirm they've connected GSC.
+- If `connected` is `true` but the body has `"error": "gsc_fetch_failed"`, their Google token likely expired — tell them to reconnect at the same URL.
+
+**How to use the data:** queries with lots of impressions but low CTR or an average position of ~8–20 are the best targets — write a new article or refresh an existing one for them. Pages at the bottom of page 1 (position ~8–12) often just need internal links and a content refresh to climb. Pair this with `POST /articles` (write the piece) and `GET /internal-links` (cross-link it).
+
 ### Microworkers Campaign Management
 
 Use these endpoints to manage Microworkers Basic Campaigns through Distribb. Campaigns are project-scoped, so always pass `project_id` when creating or registering a campaign. Only rate a worker slot `OK` after the submitted proof has been verified.
@@ -857,7 +902,7 @@ Do NOT hammer the API in a loop. Space out requests by at least 2 seconds when m
 |----------|-------|
 | `GET /projects`, `GET /projects/:id`, `GET /articles`, `GET /articles/:id`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status` | 30 req/min |
 | `POST /keywords/search`, `POST /keywords/research` | 5 req/min |
-| `GET /internal-links`, `GET /backlink-targets` | 10 req/min |
+| `GET /internal-links`, `GET /backlink-targets`, `GET /search-console` | 10 req/min |
 | `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id`, `PUT /projects/:id` | 10 req/min |
 | `POST /articles/:id/publish` | 5 req/min |
 

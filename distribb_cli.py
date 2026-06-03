@@ -22,6 +22,7 @@ Usage:
   python distribb_cli.py context:get --project-id 42
   python distribb_cli.py internal-links:get --project-id 42 --keyword "crm software"
   python distribb_cli.py integrations:list --project-id 42
+  python distribb_cli.py search-console:get --project-id 42 --days 28
   python distribb_cli.py microworkers:campaigns:list --project-id 42
   python distribb_cli.py microworkers:campaigns:create --project-id 42 --title "Post a Reddit Comment" --description "Follow the task page." --template-file mw_template.html
   python distribb_cli.py microworkers:slots:rate --campaign-id 123 --slot-id 456 --rating OK
@@ -177,6 +178,13 @@ def cmd_integrations_list(args):
     params = {}
     if args.project_id: params['project_id'] = args.project_id
     print(json.dumps(api('GET', '/api/v1/integrations', params=params), indent=2))
+
+
+def cmd_search_console(args):
+    params = {'project_id': args.project_id}
+    if args.days: params['days'] = args.days
+    if args.limit: params['limit'] = args.limit
+    print(json.dumps(api('GET', '/api/v1/search-console', params=params), indent=2))
 
 
 def cmd_microworkers_campaigns_list(args):
@@ -337,6 +345,12 @@ def main():
     p = sub.add_parser('integrations:list', help='List CMS and social integrations')
     p.add_argument('--project-id', type=int)
     p.set_defaults(func=cmd_integrations_list)
+
+    p = sub.add_parser('search-console:get', help="Get the project's Google Search Console performance (queries, pages, totals)")
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--days', type=int, help='Lookback window in days (default 28, max 90)')
+    p.add_argument('--limit', type=int, help='Rows per list (default 25, max 100)')
+    p.set_defaults(func=cmd_search_console)
 
     p = sub.add_parser('microworkers:campaigns:list', help='List registered Microworkers campaigns')
     p.add_argument('--project-id', type=int)
