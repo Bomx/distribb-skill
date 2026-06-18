@@ -23,6 +23,14 @@ Usage:
   python distribb_cli.py internal-links:get --project-id 42 --keyword "crm software"
   python distribb_cli.py integrations:list --project-id 42
   python distribb_cli.py search-console:get --project-id 42 --days 28
+  python distribb_cli.py suggestions:list --project-id 42 --status pending
+  python distribb_cli.py suggestions:run --project-id 42
+  python distribb_cli.py suggestions:get --suggestion-id 123
+  python distribb_cli.py suggestions:diff --suggestion-id 123
+  python distribb_cli.py suggestions:approve --suggestion-id 123
+  python distribb_cli.py suggestions:reject --suggestion-id 123 --reason "Page is being deprecated"
+  python distribb_cli.py suggestions:publish --suggestion-id 123
+  python distribb_cli.py suggestions:regenerate --suggestion-id 123 --feedback "Keep the pricing table, tighten the intro"
   python distribb_cli.py microworkers:campaigns:list --project-id 42
   python distribb_cli.py microworkers:campaigns:create --project-id 42 --title "Post a Reddit Comment" --description "Follow the task page." --template-file mw_template.html
   python distribb_cli.py microworkers:slots:rate --campaign-id 123 --slot-id 456 --rating OK
@@ -185,6 +193,45 @@ def cmd_search_console(args):
     if args.days: params['days'] = args.days
     if args.limit: params['limit'] = args.limit
     print(json.dumps(api('GET', '/api/v1/search-console', params=params), indent=2))
+
+
+def cmd_suggestions_list(args):
+    params = {'project_id': args.project_id}
+    if args.status: params['status'] = args.status
+    if args.limit: params['limit'] = args.limit
+    print(json.dumps(api('GET', '/api/v1/suggestions', params=params), indent=2))
+
+
+def cmd_suggestions_get(args):
+    print(json.dumps(api('GET', f'/api/v1/suggestions/{args.suggestion_id}'), indent=2))
+
+
+def cmd_suggestions_diff(args):
+    print(json.dumps(api('GET', f'/api/v1/suggestions/{args.suggestion_id}/diff'), indent=2))
+
+
+def cmd_suggestions_run(args):
+    print(json.dumps(api('POST', '/api/v1/suggestions/run', json_data={'project_id': args.project_id}), indent=2))
+
+
+def cmd_suggestions_approve(args):
+    print(json.dumps(api('POST', f'/api/v1/suggestions/{args.suggestion_id}/approve'), indent=2))
+
+
+def cmd_suggestions_reject(args):
+    data = {}
+    if args.reason: data['reason'] = args.reason
+    print(json.dumps(api('POST', f'/api/v1/suggestions/{args.suggestion_id}/reject', json_data=data), indent=2))
+
+
+def cmd_suggestions_publish(args):
+    print(json.dumps(api('POST', f'/api/v1/suggestions/{args.suggestion_id}/publish'), indent=2))
+
+
+def cmd_suggestions_regenerate(args):
+    data = {}
+    if args.feedback: data['feedback'] = args.feedback
+    print(json.dumps(api('POST', f'/api/v1/suggestions/{args.suggestion_id}/regenerate', json_data=data), indent=2))
 
 
 def cmd_microworkers_campaigns_list(args):
@@ -351,6 +398,42 @@ def main():
     p.add_argument('--days', type=int, help='Lookback window in days (default 28, max 90)')
     p.add_argument('--limit', type=int, help='Rows per list (default 25, max 100)')
     p.set_defaults(func=cmd_search_console)
+
+    p = sub.add_parser('suggestions:list', help="List a project's content-optimization suggestions")
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--status', type=str, choices=['pending', 'approved', 'rewriting', 'ready', 'published', 'rejected', 'failed', 'superseded'])
+    p.add_argument('--limit', type=int)
+    p.set_defaults(func=cmd_suggestions_list)
+
+    p = sub.add_parser('suggestions:get', help='Get a single suggestion (includes the proposed rewrite once ready)')
+    p.add_argument('--suggestion-id', type=int, required=True)
+    p.set_defaults(func=cmd_suggestions_get)
+
+    p = sub.add_parser('suggestions:diff', help='Get the before/after rewrite + the GSC trigger snapshot for a suggestion')
+    p.add_argument('--suggestion-id', type=int, required=True)
+    p.set_defaults(func=cmd_suggestions_diff)
+
+    p = sub.add_parser('suggestions:run', help='Scan a project now (pull GSC + score articles) to generate new pending suggestions')
+    p.add_argument('--project-id', type=int, required=True)
+    p.set_defaults(func=cmd_suggestions_run)
+
+    p = sub.add_parser('suggestions:approve', help='Approve a pending suggestion (starts a background rewrite)')
+    p.add_argument('--suggestion-id', type=int, required=True)
+    p.set_defaults(func=cmd_suggestions_approve)
+
+    p = sub.add_parser('suggestions:reject', help='Reject a suggestion')
+    p.add_argument('--suggestion-id', type=int, required=True)
+    p.add_argument('--reason', type=str, help='Optional reason for rejecting')
+    p.set_defaults(func=cmd_suggestions_reject)
+
+    p = sub.add_parser('suggestions:publish', help='Publish a ready rewrite to the connected CMS')
+    p.add_argument('--suggestion-id', type=int, required=True)
+    p.set_defaults(func=cmd_suggestions_publish)
+
+    p = sub.add_parser('suggestions:regenerate', help='Re-run a ready rewrite with optional feedback')
+    p.add_argument('--suggestion-id', type=int, required=True)
+    p.add_argument('--feedback', type=str, help='Steer the rewrite (tone, focus, fixes)')
+    p.set_defaults(func=cmd_suggestions_regenerate)
 
     p = sub.add_parser('microworkers:campaigns:list', help='List registered Microworkers campaigns')
     p.add_argument('--project-id', type=int)

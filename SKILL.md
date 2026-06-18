@@ -78,6 +78,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Business Context** | Get brand voice, competitors, custom instructions | `GET /business-context` |
 | **Integrations** | See connected CMS platforms | `GET /integrations` |
 | **Google Search Console** | Pull the user's real GSC performance — top queries, top pages, clicks, impressions, CTR, position (if they've connected GSC) | `GET /search-console` |
+| **Content Optimizations** | Find pages worth rewriting (mostly from GSC), review the AI's before/after diff, then approve and publish the rewrite to the CMS | `GET /suggestions`, `POST /suggestions/run`, `POST /suggestions/:id/approve\|publish\|regenerate\|reject` |
 | **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
 | **Microworkers Campaign Management** | Create/register campaigns, list submissions, and rate worker slots for Reddit, Quora, YouTube, or generic proof tasks | `GET/POST /microworkers/campaigns`, `GET /microworkers/campaigns/:id/slots`, `POST /microworkers/slots/:slot_id/rate` |
 
@@ -582,6 +583,85 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 **How to use the data:** queries with lots of impressions but low CTR or an average position of ~8–20 are the best targets — write a new article or refresh an existing one for them. Pages at the bottom of page 1 (position ~8–12) often just need internal links and a content refresh to climb. Pair this with `POST /articles` (write the piece) and `GET /internal-links` (cross-link it).
 
+### Content Optimizations (Suggestions)
+
+Distribb continuously finds pages where a rewrite could win more traffic — mostly from the user's **Google Search Console** data (queries with impressions but low CTR, pages stuck at the bottom of page 1). Each one is a **suggestion**: Distribb scrapes the live page, has its AI draft an improved version, and stages a before/after **diff** for review. You (the agent) list them, inspect the diff, approve (which triggers the rewrite), then publish the approved rewrite straight to the user's CMS. This is the highest-leverage ongoing SEO loop — it acts on pages that *already* rank, so wins come faster than net-new articles.
+
+**Lifecycle:** `pending` → (approve) → `rewriting` → `ready` → (publish) → `published`. A suggestion can also be `rejected`, `failed`, or `superseded` (the article changed after the suggestion was created, so the staged rewrite is stale).
+
+```bash
+# Generate a fresh batch now (pulls GSC + scores articles). Mirrors the weekly cron.
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": 42}' \
+  https://distribb.io/api/v1/suggestions/run | jq .
+
+# List suggestions (optionally filter by status: pending, ready, published, ...)
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/suggestions?project_id=42&status=pending" | jq .
+
+# Inspect a single suggestion, then its before/after rewrite
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/suggestions/123 | jq .
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/suggestions/123/diff | jq .
+
+# Approve -> starts a background rewrite. Poll the suggestion until status is "ready".
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/suggestions/123/approve | jq .
+
+# Once "ready", publish the rewrite to the connected CMS
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/suggestions/123/publish | jq .
+
+# Not happy with the rewrite? Regenerate with feedback (only valid while "ready")
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"feedback": "Keep the pricing table, tighten the intro, add a FAQ."}' \
+  https://distribb.io/api/v1/suggestions/123/regenerate | jq .
+
+# Or dismiss it
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"reason": "Page is being deprecated."}' \
+  https://distribb.io/api/v1/suggestions/123/reject | jq .
+```
+
+**List response (200):**
+```json
+{
+  "project_id": 42,
+  "gsc_connected": true,
+  "counts": { "pending": 4, "ready": 1, "published": 9, "rejected": 2 },
+  "settings": { "enabled": true },
+  "suggestions": [
+    {
+      "id": 123,
+      "project_id": 42,
+      "article_id": 8801,
+      "status": "pending",
+      "suggestion_type": "content_rewrite",
+      "source_type": "distribb",
+      "article_title": "Best CRM for Small Business",
+      "article_url": "https://acme.com/blog/crm-guide",
+      "trigger_snapshot": { "query": "best crm for small business", "impressions": 8100, "ctr": 0.012, "position": 11.4 },
+      "created_at": "2026-06-16T06:00:00"
+    }
+  ]
+}
+```
+
+**Agent contract:**
+- **Approve and publish are real, billable actions.** `publish` pushes the rewrite live to the user's CMS. Show the user the diff (`GET /suggestions/:id/diff`) and get a clear go-ahead before approving/publishing, unless they've explicitly told you to run optimizations autonomously.
+- **Approve and regenerate are asynchronous.** They return immediately with status `rewriting`. Poll `GET /api/v1/suggestions/:id` every ~15–30s until status is `ready` (rewrite staged) or `failed`. Do **not** publish until `ready`.
+- **A `409` on approve or publish is a conflict** — the article changed since the suggestion was created (status flips to `superseded`). Run `POST /suggestions/run` to regenerate fresh suggestions against the current article, then start over.
+- If `gsc_connected` is `false` and the list is empty, follow the `instructions_for_agent` string: tell the user to connect GSC at https://distribb.io/integrations, then `POST /suggestions/run`.
+
+**Parameters:**
+- `GET /suggestions` — `project_id` (required), `status` (optional), `limit` (default 100, max 500).
+- `POST /suggestions/run` — `project_id` (required).
+- `POST /suggestions/:id/reject` — optional `reason`. `POST /suggestions/:id/regenerate` — optional `feedback`.
+
 ### Microworkers Campaign Management
 
 Use these endpoints to manage Microworkers Basic Campaigns through Distribb. Campaigns are project-scoped, so always pass `project_id` when creating or registering a campaign. Only rate a worker slot `OK` after the submitted proof has been verified.
@@ -903,8 +983,11 @@ Do NOT hammer the API in a loop. Space out requests by at least 2 seconds when m
 | `GET /projects`, `GET /projects/:id`, `GET /articles`, `GET /articles/:id`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status` | 30 req/min |
 | `POST /keywords/search`, `POST /keywords/research` | 5 req/min |
 | `GET /internal-links`, `GET /backlink-targets`, `GET /search-console` | 10 req/min |
+| `GET /suggestions`, `GET /suggestions/:id`, `GET /suggestions/:id/diff` | 30 req/min |
 | `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id`, `PUT /projects/:id` | 10 req/min |
-| `POST /articles/:id/publish` | 5 req/min |
+| `POST /suggestions/:id/approve`, `POST /suggestions/:id/reject`, `POST /suggestions/:id/regenerate` | 10 req/min |
+| `POST /articles/:id/publish`, `POST /suggestions/:id/publish` | 5 req/min |
+| `POST /suggestions/run` | 3 req/min |
 
 ---
 
