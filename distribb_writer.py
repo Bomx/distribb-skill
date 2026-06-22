@@ -206,37 +206,67 @@ def publish_article(article_id: int) -> dict:
 # ══════════════════════════════════════════════════════════════
 
 SEO_WRITING_RULES = """
-WRITING QUALITY:
-- Write like a knowledgeable human, not AI. Vary sentence length naturally.
-- Start sections with a strong statement, NEVER with "In today's..." or "When it comes to..."
-- Use specific examples, data points, and actionable advice.
-- Never bold the primary keyword in text.
+FORMAT FIRST (most important):
+- Decide the format from search intent before writing: Listicle ("best X", "top X",
+  "X tools/agencies/alternatives"), Comparison ("X vs Y"), Review, How-to ("how to X"),
+  Explainer ("what is X"), or Resources ("X templates/examples/statistics").
+- Then follow that format's spine:
+  * Listicle:   short intro -> "## 1. [Named option]" ... "## N. [Named option]" -> FAQ
+  * Comparison: short intro -> quick context -> one section per option (same criteria) -> verdict -> FAQ
+  * How-to:     short intro -> "## Step 1: [Action]" ... -> FAQ
+  * Explainer:  short intro (answers the question in 2 sentences) -> definition -> how it works -> pitfalls -> FAQ
+- The worst mistake is writing a "best X" listicle as a how-to ("Step 1: define goals").
+  Name the actual options. That IS the article.
 
-BANNED WORDS/PHRASES (AI detection triggers):
-- "crucial", "comprehensive", "robust", "leverage", "streamline", "delve"
-- "It's worth noting", "In conclusion", "In the ever-evolving landscape"
-- "Game-changer", "Unlock the power", "Take your X to the next level"
+GO STRAIGHT TO THE POINT:
+- Intro is 2-4 sentences, under ~80 words. Hook, one line of stakes, then the payoff.
+- In a listicle/comparison, do NOT add a "Why X matters" / "What is X" / "Benefits of X"
+  preamble section. Fold a one-line definition into the intro at most, then go straight
+  to the named items. Intro -> the list -> FAQ -> done.
+- Never start a section with "In today's...", "When it comes to...", "Whether you're X or Y."
 
-INTERNAL LINKING RULES:
-- Place links naturally in the middle of paragraphs, never in intros or conclusions.
-- Use descriptive anchor text (never "click here", "read more", "our blog").
-- Never place two links in the same paragraph or consecutive paragraphs.
-- Format: <a href="EXACT_URL_FROM_LIST">descriptive anchor text</a>
+WRITE LIKE A HUMAN (humanizer pass -- run on the finished draft):
+- Vary sentence length hard. Have an opinion. Use specific, sourced detail.
+- Use plain verbs: "is / has", not "serves as / boasts / features / offers".
+- CUT: significance inflation ("a testament to", "plays a pivotal role", "stands as"),
+  promotional fluff ("vibrant", "robust", "seamless", "boasts", "game-changer"),
+  vague attribution ("experts believe", "studies show" with no source),
+  "-ing" tails that fake depth ("..., highlighting its value"),
+  "not just X, it's Y", forced rule-of-three, "from X to Y" false ranges,
+  signposting ("Let's dive in", "Here's what you need to know"),
+  filler ("in order to" -> "to", "due to the fact that" -> "because"),
+  "**Label:** description" inline-header lists, mechanical bold, emojis, em dashes.
+- Never bold the primary keyword. Straight quotes only.
 
-BACKLINK EXCHANGE RULES:
-- Weave network backlinks as natural references to relevant resources.
-- Do NOT fabricate information about linked sites.
-- Use topically relevant anchor text.
+LENGTH -- MATCH THE TOP RESULTS, THEN BUILD ON TOP (not shortness for its own sake):
+- Decide length from the TOP 3 ranking pages for the keyword: match their depth, then build
+  a little on top (skyscraper). Cap around 3,000 words; never runaway-pad. They rank for a
+  reason -- emulate them, then go a bit beyond.
+- Reach that length with REAL substance (examples, sourced facts, specifics, depth per
+  section), never filler. Don't pad past the depth the topic needs, and DON'T undershoot it
+  by writing thin. (If the project's instructions ask for short/punchy, follow them.)
+
+FAQ + CONCLUSION:
+- FAQ (4-6 Qs as people type them; 40-80 word answers; direct answer first sentence).
+- Short conclusion: one direct recommendation + next action. Do NOT recap with the
+  keyword stuffed in ("We've walked through the best X 2026...").
+
+INTERNAL LINKING:
+- Place links in the middle of substantive paragraphs, never in intros or conclusions.
+- Descriptive anchor text (never "click here", "read more", "our blog"). Never two links
+  in the same or consecutive paragraphs. Format: <a href="EXACT_URL_FROM_LIST">anchor</a>
+
+BACKLINK EXCHANGE:
+- Weave network backlinks as natural references; include only the ones that genuinely fit.
+- Do NOT fabricate information about linked sites; use only what their title/description says.
 
 COMPETITOR PROTECTION:
-- Never link to or positively recommend direct competitors.
-- You may mention competitors factually in comparisons but without outbound links.
+- Never link to or rank a direct competitor above the client. In a "best X" list you MUST
+  name competitors (factually, unlinked) with the client positioned as the top pick.
 
-CONTENT STRUCTURE:
-- Use H2 for section headings, H3 for subsections.
-- Output valid HTML (not markdown).
-- Target 2500-3500 words total across 5-8 sections.
-- Include a meta description (155 chars max) with the primary keyword.
+OUTPUT:
+- Valid HTML (not markdown). H2 for sections, H3 for subsections.
+- Meta description (155 chars max) with the primary keyword, written for a human to click.
 """
 
 
@@ -321,8 +351,12 @@ OUTPUT FORMAT (JSON):
   "word_count": 3000
 }}
 
-Write 5-8 sections (H2 headings), 2500-3500 words total. Include internal links
-and backlinks naturally. Output valid HTML, not markdown."""
+Pick the format from search intent and follow its spine (see FORMAT FIRST above). Keep
+the intro to 2-4 sentences, then go straight to the payoff. Write a thorough, substantive
+article (most land in the ~2000-word range; match the depth that ranks) -- reach it with real
+substance, never filler, and don't undershoot it by writing thin. After drafting, run the
+humanizer pass over the whole article and rewrite every AI tell. Include internal links and
+backlinks naturally. Output valid HTML, not markdown."""
 
     logger.info("Generating article content with AI...")
     raw = ai_chat(

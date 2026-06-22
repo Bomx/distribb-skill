@@ -7,9 +7,9 @@ No Distribb server dependencies. Produces a research bundle (hook, key findings,
 data table) that can be woven into articles before submitting to Distribb.
 
 3-step pipeline:
-  1. AI Research Planner  — decides strategy, search queries, extraction instructions
-  2. Data Collector       — searches web, scrapes pages, extracts structured data
-  3. AI Data Analyst      — finds patterns, produces hook/table/findings
+  1. AI Research Planner  - decides strategy, search queries, extraction instructions
+  2. Data Collector       - searches web, scrapes pages, extracts structured data
+  3. AI Data Analyst      - finds patterns, produces hook/table/findings
 
 Every data point traces to a real scraped URL. The AI extracts and analyses;
 it never generates data.
@@ -359,7 +359,7 @@ RULES:
 - Use the pre-computed metrics provided (averages, medians, ranges).
 - Each finding MUST include a specific number or percentage.
 - Build an HTML table: <table class="research-table"> with <thead>, <tbody>.
-- Use <strong> to highlight notable values. Use em-dash for missing values.
+- Use <strong> to highlight notable values. Use "N/A" for missing values (never an em dash).
 - Last column = source domain (short name, not full URL).
 - 3-4 key findings, ordered most surprising to most actionable.
 

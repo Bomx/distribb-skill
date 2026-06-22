@@ -401,7 +401,7 @@ def main():
 
     p = sub.add_parser('suggestions:list', help="List a project's content-optimization suggestions")
     p.add_argument('--project-id', type=int, required=True)
-    p.add_argument('--status', type=str, choices=['pending', 'approved', 'rewriting', 'ready', 'published', 'rejected', 'failed', 'superseded'])
+    p.add_argument('--status', type=str, choices=['pending', 'rewriting', 'ready', 'published', 'rejected', 'failed', 'superseded'])
     p.add_argument('--limit', type=int)
     p.set_defaults(func=cmd_suggestions_list)
 
