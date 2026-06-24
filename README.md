@@ -39,6 +39,8 @@ No installation required for the API. The skill uses `curl` and `jq`. The first 
 | `/backlinks` | Check credits and targets, explain the exchange |
 | `/content-calendar` | List, schedule, and manage articles |
 | `/ai-visibility` | Find where AI engines should recommend you, and which listicles to pitch |
+| `/news-writer <site-url-or-niche>` | Turn fresh news in your niche into grounded drafts and queue them in Distribb to autopublish |
+| `/statistics-page-writer <topic>` | Deep-research and publish a sourced statistics page journalists love to link to |
 
 Command files live in `commands/`. If they are not auto-registered by your installer, run `/distribb-setup` or copy `commands/*.md` into your project's `.claude/commands/` folder.
 
@@ -135,6 +137,7 @@ Distribb can create/register project-scoped Microworkers Basic Campaigns, list w
 | [`references/onboarding-guide.md`](./references/onboarding-guide.md) | Everything onboarding collects + the website + GSC connections |
 | [`references/platform-guide.md`](./references/platform-guide.md) | Where things live in the app (calendar, settings, backlinks, optimizations) |
 | [`references/plans-and-backlinks.md`](./references/plans-and-backlinks.md) | Plans, the backlink exchange, and the Accelerator |
+| [`references/statistics-page-playbook.md`](./references/statistics-page-playbook.md) | How `/statistics-page-writer` deep-researches and builds a journalist-ready statistics page |
 
 ## Sub-skills
 
@@ -151,6 +154,7 @@ The skill works fully with `curl` + `jq` (no install). These Python helpers ship
 | `distribb_cli.py` | A thin CLI over the same API (`projects:list`, `articles:create`, `keywords:search`, `suggestions:list`, etc.). `pip install requests python-dotenv`, then `export DISTRIBB_API_KEY=...`. |
 | `distribb_research.py` | A standalone original-data research pipeline (plan -> scrape -> analyze) that produces a sourced hook + data table to weave into articles. Uses your own AI key; never invents data. |
 | `distribb_writer.py` | A reference implementation showing how to write an SEO article locally with your own AI and submit it via the API. Meant to be modified or swapped out. |
+| `news_topics.py` | Used by `/news-writer`. A stdlib-only Google News RSS scraper (no API key, no install) that surfaces fresh, recent headlines for a niche and writes `news_topics_export.csv` next to itself. |
 
 ## MCP Server (Cursor / Claude Desktop)
 

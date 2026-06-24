@@ -46,6 +46,8 @@ This skill ships ready-to-use slash commands so the user can drive the whole wor
 | `/backlinks` | Check backlink credits, see targets, and explain how the exchange works |
 | `/content-calendar` | List, schedule, and manage planned/draft/published articles |
 | `/ai-visibility` | Find where the user should be recommended by ChatGPT/Perplexity/Gemini and which listicles to pitch |
+| `/news-writer <site-url-or-niche>` | Newsjack: find fresh news in the niche, write grounded news drafts, and queue them in Distribb |
+| `/statistics-page-writer <topic>` | Deep-research and publish a sourced statistics page journalists cite for months |
 
 If these commands are not yet available when the user types them, run `/distribb-setup` (or copy this skill's `commands/*.md` into the project's `.claude/commands/` folder) to register them. See the **Slash Commands** section below.
 
@@ -1073,6 +1075,8 @@ This skill ships a set of slash commands in its `commands/` folder so the user c
 | `/backlinks` | (none) | Credits, targets, and how the exchange works |
 | `/content-calendar` | (none) | List / schedule / manage articles |
 | `/ai-visibility` | (none) | AI-search visibility + listicle outreach research |
+| `/news-writer` | `<site-url-or-niche>` | Newsjack: find fresh news, write grounded drafts, queue in Distribb |
+| `/statistics-page-writer` | `<industry-or-topic>` | Deep-research and publish a journalist-ready statistics page |
 
 **Enabling the commands.** Depending on how the skill was installed, the commands may already be live. If a command is not recognized, register them once by copying this skill's command files into the project's command folder:
 
