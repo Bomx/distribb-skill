@@ -112,7 +112,8 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Backlink Exchange** | Get real backlinks from other businesses in the network | `GET /backlink-targets` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
 | **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id` |
-| **Project Settings** | Read & edit settings: custom article instructions, business description, publish time, timezone, backlink-network toggle | `GET /projects/:id`, `PUT /projects/:id` |
+| **Project Settings** | Read & edit the FULL settings surface (~30 fields): instructions, sitemap/blog URLs, content pillars, tone, writing profile, positioning, images/brand, competitors, toggles, publish time/timezone | `GET /projects/:id`, `PUT /projects/:id` |
+| **Create + Onboard Project** | Create a new project (gated to paid slots; returns a buy-a-slot link if over) and optionally start keyword research + first articles. Ask the user before running research. Connect WordPress via API too | `POST /projects`, `POST /projects/:id/onboarding`, `POST /projects/:id/wordpress` |
 | **Internal Linking** | Get your published article URLs to cross-link in new content | `GET /internal-links` |
 | **Business Context** | Get brand voice, competitors, custom instructions | `GET /business-context` |
 | **Integrations** | See connected CMS platforms | `GET /integrations` |
@@ -265,48 +266,151 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 **IMPORTANT:** Check the `BecklinksNetworkParticipation` field. If it is `"Yes"`, this project is part of the backlink exchange network. You MUST call `/backlink-targets` before writing each article and include 1-2 target URLs in the content. This is how the user earns backlinks from other real businesses. Skipping this means the user gives nothing and receives nothing from the network.
 
-### Project Settings (Read & Edit)
+### Project Settings (Read & Edit) — the FULL settings surface
 
-Read a single project's settings, then change them, so you can manage a project end-to-end from the agent.
+`GET` returns a `settings` object; `PUT` accepts that **same shape**. So the loop is: GET, change the keys you want, PUT them back (read-modify-write). The PUT exposes the *entire* Settings UI, ~30 fields, not just a handful, so you can configure a project end-to-end without the dashboard. This is what makes agency-scale onboarding possible.
 
 ```bash
-# Read current settings
+# Read current settings  (returns { "project": {...}, "settings": {...} })
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
-  https://distribb.io/api/v1/projects/42 | jq .
+  https://distribb.io/api/v1/projects/42 | jq .settings
 
-# Edit settings (send ONLY the fields you want to change)
+# Edit settings (send ONLY the keys you want to change — partial updates are safe)
 curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "ai_instructions": "Write in a friendly, plain-English tone. Always include a pricing section.",
-    "business_description": "Acme is a CRM for small service businesses.",
-    "publish_time": "09:00",
-    "timezone": "America/New_York",
-    "backlinks_network": true
+    "sitemap_url": "https://acme.com/sitemap.xml",
+    "blog_root_url": "https://acme.com/blog",
+    "content_pillars": ["https://acme.com/crm", "https://acme.com/pricing"],
+    "internal_links_per_article": 3,
+    "tone": "Conversational",
+    "writing_profile": "Balanced SEO",
+    "product_positioning": "Soft mention",
+    "image_hosting": "CMS",
+    "brand_color": "#1d4ed8",
+    "cta_intensity": "Soft",
+    "competitors": ["https://competitor1.com", "https://competitor2.com"],
+    "brand_intelligence": true,
+    "duplicate_content_protection": true,
+    "timezone": "America/New_York"
   }' \
   https://distribb.io/api/v1/projects/42 | jq .
 ```
 
-**Editable fields:**
+**Writable fields** (every key the `settings` object returns is writable; aliases in parentheses):
 
-| Field | Meaning |
-|-------|---------|
-| `ai_instructions` | The "Customize Article Instructions" field, custom writing guidelines applied to every article. |
-| `business_description` | What the business does (used as context when writing). |
+| Field | Meaning / allowed values |
+|-------|--------------------------|
+| `ai_instructions` | Custom writing guidelines applied to every article. |
+| `business_name`, `business_description` | Brand name + what the business does (writing context). |
+| `target_audience` | List of audience strings, e.g. `["SaaS founders"]`. |
+| `sitemap_url` | Sitemap URL (used to build the internal-link index). |
+| `blog_root_url` | Blog root URL. |
+| `content_pillars` | **List of URLs** (drives topic clusters + internal links). Each must be a valid URL, no spaces. |
+| `internal_links_per_article` (`internal_links`) | Integer `1`–`5`. |
+| `tone` | `Informative` \| `Conversational` \| `Persuasive`. |
+| `language` | UI label or code, e.g. `English (US)`, `French`, `en-gb`. |
+| `keyword_region` | e.g. `United States`, `United Kingdom`, `Worldwide`. |
+| `writing_profile` | `Experienced practitioner` \| `Simple educational` \| `Balanced SEO`. |
+| `product_positioning` | `Neutral operational` \| `Soft mention` \| `Promotional`. |
+| `custom_author_name` | Byline author name. |
+| `social_media_ai_instructions` | Custom instructions for repurposed social posts. |
 | `publish_time` | Daily auto-publish time, 24-hour `"HH:MM"`. |
-| `timezone` | IANA timezone name, e.g. `"Europe/Madrid"`. |
-| `backlinks_network` | `true`/`false`, join or leave the backlink exchange network. |
+| `timezone` | IANA name, e.g. `"Europe/Madrid"`. |
+| `publishing_status` | `Publish Immediately` \| `Save as Drafts` \| `Send as Drafts`. |
+| `social_media_publishing_status` | `Save as Drafts` \| `Publish Immediately`. |
+| `image_hosting` | `Distribb` \| `CMS`. |
+| `image_style` | Free text (e.g. `Realism`, or a custom description). |
+| `brand_color` | Hex string like `"#e11d2a"`. |
+| `image_prompt_instructions` | Extra guidance for image generation. |
+| `title_based_featured_image` | `true`/`false`, title-card featured image. |
+| `cta_intensity` | `None` \| `Soft` \| `Direct`. |
+| `first_person_writing` | `true`/`false`. |
+| `table_of_contents` | `true`/`false`, auto table of contents. |
+| `avoid_formulaic_section_endings` | `true`/`false`. |
+| `require_operational_examples` | `true`/`false`. |
+| `strict_banned_phrase_guard` | `true`/`false`. |
+| `banned_phrases` (`extra_banned_phrases`) | List of phrases to never use. |
+| `brand_intelligence` | `true`/`false`. |
+| `duplicate_content_protection` (`duplicate_content_guard_enabled`) | `true`/`false`. |
+| `videos_enabled` | `true`/`false`. |
+| `backlinks_network` | `true`/`false`, join/leave the backlink exchange. |
+| `competitors` (`competitor_websites`) | **List of competitor domains** (read AND write). |
+
+**Partial updates are safe.** The article-quality and image preferences are stored as merged JSON, so sending just `{"cta_intensity": "Soft"}` changes ONLY that, the other quality flags keep their current values. Invalid enum values return `400` with a message naming the allowed values.
 
 **Response (200):**
 ```json
 {
   "project_id": 42,
-  "updated_fields": ["AIInstructions", "CustomPublishSchedule", "BecklinksNetworkParticipation"],
+  "updated_fields": ["tone", "cta_intensity", "competitors"],
+  "updated_columns": ["ContentStyle", "ArticleQualitySettings", "CompetitorWebsites"],
   "message": "Project settings updated."
 }
 ```
 
-**Note:** `articles_per_day` is controlled by the user's plan and **cannot** be changed via the API. If you send it, it's ignored and echoed back under `ignored`. You can still *read* it via `GET /api/v1/projects` and `GET /api/v1/projects/:id`.
+**Not settable via API:**
+- `articles_per_day` — plan-controlled. If sent, it's echoed back under `ignored`. Read it via `GET /api/v1/projects` or the `settings` block.
+- **Optimization thresholds** (`min_position`, `max_position`, `min_impressions_per_week`, `min_article_age_days`, `excluded_article_ids`) — applied at scan time by `POST /api/v1/suggestions/run`, not yet persisted per project. Sent values are echoed under `ignored`.
+
+### Create a Project (agency-scale onboarding)
+
+Spin up a brand-new project for a client and configure it in ONE call. You can pass any writable settings field from the table above alongside the basics.
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "website_url": "https://client.com",
+    "business_name": "Client Co",
+    "business_description": "Bookkeeping for trades businesses.",
+    "target_audience": ["plumbers", "electricians"],
+    "tone": "Conversational",
+    "content_pillars": ["https://client.com/bookkeeping", "https://client.com/payroll"],
+    "competitors": ["https://rival.com"]
+  }' \
+  https://distribb.io/api/v1/projects | jq .
+```
+
+**Response (201):** `{ "project_id": 77, "project_slots": {"used": 3, "total": 5}, "next_step": "...", ... }`
+
+**Project slots are gated by the paid quantity.** If the account is already at its limit, you get **HTTP 402**:
+```json
+{
+  "error": "project_limit_reached",
+  "active_projects": 5,
+  "project_quantity": 5,
+  "purchase_url": "https://distribb.io/dashboard?add_project=1",
+  "instructions_for_agent": "Tell the user they've hit their project limit and share purchase_url ..."
+}
+```
+When you see this: **show the user `purchase_url`** (one click opens the "Buy More Seats" dialog in their dashboard). Once they confirm they bought a slot, **retry the same POST**. Never try to bypass the limit.
+
+Creating a project **does NOT start keyword research** (that spends credits). After it's created, **ASK the user** whether they want to kick off keyword research + the first articles now. If yes, call the onboarding endpoint below.
+
+### Run Onboarding (keyword research + first articles)
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/projects/77/onboarding | jq .
+```
+
+Starts the same pipeline the dashboard runs when onboarding finishes: GSC-aware keyword discovery -> a planned content calendar -> the first articles begin generating. Returns **202**; poll `GET /api/v1/articles?project_id=77` to watch planned articles appear.
+
+- **Always ask the user first** — this spends keyword/LLM credits.
+- If the project already has articles, it returns `already_onboarded` and does nothing.
+- On Free / Agentic plans this returns `skipped_byok` (those plans bring their own keywords — use `POST /api/v1/keywords/search` then `POST /api/v1/articles`).
+
+### Connect WordPress
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "wordpress_url": "https://client.com", "integration_key": "<plugin Integration Key>" }' \
+  https://distribb.io/api/v1/projects/77/wordpress | jq .
+```
+
+Install the Distribb WordPress plugin on the site, copy its **Integration Key**, and send it here. Credentials are validated (format check + live probe) before saving, the same checks the dashboard runs. Returns `{ "status": "connected" }`; if live validation is inconclusive (WAF/network) it still saves and returns a `warning`.
 
 ### Business Context
 
@@ -545,7 +649,7 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles | jq .
 ```
 
-Articles with `status: Planned` and a `scheduled_date` auto-publish when the date arrives. Use `status: Draft` if the user wants to review first.
+Setting a `scheduled_date` schedules the article: submit it as a `Draft` with a date and Distribb auto-promotes it to `Planned` (passing `status: Planned` yourself is still fine). Omit the date and it stays a `Draft` for review. What happens ON the date depends on the project's `PublishingStatus` (read it from `GET /api/v1/projects`): `Publish Immediately` goes live; `Save as Drafts` keeps it as a draft inside Distribb for manual review; `Send as Drafts` pushes it to the CMS as a draft. So a correctly-scheduled article on a `Save as Drafts` project will NOT auto-publish to the live site, that is by design, not a bug.
 
 ### Update Article
 
@@ -560,7 +664,7 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123 | jq .
 ```
 
-**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`. Send only the fields you want to change. Changing `keyword` also regenerates the article's slug. To **unschedule** an article, send `"scheduled_date": null`, a `Planned` article drops back to `Draft` so it won't auto-publish.
+**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`. Send only the fields you want to change. Changing `keyword` also regenerates the article's slug. Scheduling is symmetric: sending a `scheduled_date` on a `Draft` promotes it to `Planned` (so it actually enters the publish pipeline), and sending `"scheduled_date": null` **unschedules** it, dropping a `Planned` article back to `Draft`. Pass an explicit `status` if you want to override either default.
 
 **Response (200):**
 ```json
@@ -622,7 +726,9 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123/publish | jq .
 ```
 
-Pushes the article to the user's connected CMS (WordPress, Webflow, Shopify, etc.). Returns `200` on success. If the CMS publish fails, returns `202` meaning the article was queued as `Planned` and will be retried automatically -- the article is NOT lost.
+Pushes the article to the user's connected CMS (WordPress, Webflow, Shopify, etc.). A manual publish like this **always goes live**, even if the project is set to `Save as Drafts` / `Send as Drafts`, that preference only controls AUTOMATIC scheduled publishing, not a deliberate "publish now". Returns `200` with `{"status":"published","url":...}` once the CMS confirms a live URL; `202` with `{"status":"pending"}` if the CMS hasn't confirmed yet (it will retry, the article is NOT lost).
+
+**The project must have a website/CMS connected.** If none is, this returns **`400` with `{"error":"no_cms_integration"}`** and a `connect_url`. Surface that to the user verbatim, there is nowhere to publish until they connect their site at https://distribb.io/integrations . This is the single most common reason a scheduled article never publishes: a Google Search Console (analytics) connection is NOT a publishing destination. Before you tell a user an article will publish, confirm a CMS is connected with `GET /api/v1/integrations`.
 
 ### Social Media Repurposing (Automatic)
 
@@ -1141,9 +1247,9 @@ Do NOT hammer the API in a loop. Space out requests by at least 2 seconds when m
 | `POST /keywords/search`, `POST /keywords/research` | 5 req/min |
 | `GET /internal-links`, `GET /backlink-targets`, `GET /search-console` | 10 req/min |
 | `GET /suggestions`, `GET /suggestions/:id`, `GET /suggestions/:id/diff` | 30 req/min |
-| `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id`, `PUT /projects/:id` | 10 req/min |
+| `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id`, `PUT /projects/:id`, `POST /projects`, `POST /projects/:id/wordpress` | 10 req/min |
 | `POST /suggestions/:id/approve`, `POST /suggestions/:id/reject`, `POST /suggestions/:id/regenerate` | 10 req/min |
-| `POST /articles/:id/publish`, `POST /suggestions/:id/publish` | 5 req/min |
+| `POST /articles/:id/publish`, `POST /suggestions/:id/publish`, `POST /projects/:id/onboarding` | 5 req/min |
 | `POST /suggestions/run` | 3 req/min |
 
 ---
@@ -1154,7 +1260,7 @@ Do NOT hammer the API in a loop. Space out requests by at least 2 seconds when m
 - The `/internal-links` response tells you exactly how many links to include (`num_links_recommended`).
 - Check `/backlinks/status` to see how many credits the project has. More credits = more backlinks received.
 - NEVER skip `/backlink-targets` when `BecklinksNetworkParticipation` is `"Yes"`. This is the single most impactful SEO feature for the user. Articles without network backlinks do not earn credits.
-- Articles with `status: Planned` and a `scheduled_date` auto-publish. Use `status: Draft` if the user wants to review first.
+- Scheduling: a `scheduled_date` promotes a `Draft` to `Planned` automatically; omit the date to keep it a `Draft` for review. Whether a scheduled article goes live or waits as a draft on its date is set by the project's `PublishingStatus` (`Publish Immediately` vs `Save as Drafts`/`Send as Drafts`), so always check that field before telling a user their article will publish.
 - All API responses are JSON. Parse them with `jq` to extract IDs, URLs, and data for the next step.
 - For long article HTML, write to a file first, then use `jq -n --arg content "$(cat article.html)"` to safely encode.
 

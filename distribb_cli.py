@@ -16,6 +16,11 @@ Usage:
   python distribb_cli.py articles:publish --article-id 123
   python distribb_cli.py projects:get --project-id 42
   python distribb_cli.py projects:update --project-id 42 --ai-instructions "Friendly, plain-English tone" --publish-time 09:00 --timezone Europe/Madrid --backlinks-network yes
+  python distribb_cli.py projects:update --project-id 42 --set tone=Conversational --set internal_links_per_article=3 --set 'content_pillars=["https://acme.com/crm","https://acme.com/pricing"]'
+  python distribb_cli.py projects:update --project-id 42 --json '{"writing_profile":"Balanced SEO","cta_intensity":"Soft","brand_color":"#1d4ed8"}'
+  python distribb_cli.py projects:create --website-url https://client.com --business-name "Client Co" --set tone=Conversational
+  python distribb_cli.py projects:onboard --project-id 77   # ASK THE USER FIRST — spends credits
+  python distribb_cli.py projects:wordpress --project-id 77 --wordpress-url https://client.com --integration-key "<plugin key>"
   python distribb_cli.py keywords:search --project-id 42 --keyword "crm software"
   python distribb_cli.py backlinks:targets --project-id 42 --keyword "crm software"
   python distribb_cli.py backlinks:status --project-id 42
@@ -142,8 +147,43 @@ def cmd_projects_get(args):
     print(json.dumps(api('GET', f'/api/v1/projects/{args.project_id}'), indent=2))
 
 
-def cmd_projects_update(args):
+def _parse_set_pairs(pairs):
+    """Parse repeated --set key=value into a dict, JSON-decoding each value when
+    possible (so booleans, numbers, and JSON lists work: --set first_person_writing=false,
+    --set 'competitors=["https://a.com","https://b.com"]')."""
+    out = {}
+    for item in (pairs or []):
+        if '=' not in item:
+            print(json.dumps({"error": f"--set must be key=value, got: {item!r}"}))
+            sys.exit(1)
+        k, v = item.split('=', 1)
+        try:
+            out[k.strip()] = json.loads(v)
+        except (ValueError, TypeError):
+            out[k.strip()] = v
+    return out
+
+
+def _settings_from_args(args):
+    """Merge --json-file, then --json, then --set into one settings dict.
+
+    This is the escape hatch that lets the agent send ANY of the ~30 writable
+    project fields (the full Settings UI) in one shot, even ones without a
+    dedicated flag. GET /api/v1/projects/:id shows every writable key."""
     data = {}
+    if getattr(args, 'json_file', None):
+        with open(args.json_file, 'r') as f:
+            data.update(json.load(f))
+    if getattr(args, 'json', None):
+        data.update(json.loads(args.json))
+    if getattr(args, 'set', None):
+        data.update(_parse_set_pairs(args.set))
+    return data
+
+
+def cmd_projects_update(args):
+    data = _settings_from_args(args)
+    # Explicit flags take precedence over --json/--set for the same key.
     if args.ai_instructions is not None: data['ai_instructions'] = args.ai_instructions
     if args.business_description is not None: data['business_description'] = args.business_description
     if args.publish_time is not None: data['publish_time'] = args.publish_time
@@ -151,9 +191,29 @@ def cmd_projects_update(args):
     if args.backlinks_network is not None:
         data['backlinks_network'] = args.backlinks_network.lower() in ('yes', 'true', '1', 'on', 'enabled')
     if not data:
-        print(json.dumps({"error": "Nothing to update. Pass at least one of --ai-instructions/--business-description/--publish-time/--timezone/--backlinks-network."}))
+        print(json.dumps({"error": "Nothing to update. Pass explicit flags, --set key=value (repeatable), or --json '{...}'. Run projects:get to see every writable key."}))
         sys.exit(1)
     print(json.dumps(api('PUT', f'/api/v1/projects/{args.project_id}', json_data=data), indent=2))
+
+
+def cmd_projects_create(args):
+    data = _settings_from_args(args)
+    data['website_url'] = args.website_url
+    if args.business_name is not None: data['business_name'] = args.business_name
+    if args.business_description is not None: data['business_description'] = args.business_description
+    if args.target_audience: data['target_audience'] = args.target_audience
+    print(json.dumps(api('POST', '/api/v1/projects', json_data=data), indent=2))
+
+
+def cmd_projects_onboard(args):
+    """Start keyword research + first articles. ASK THE USER before running — it spends credits."""
+    print(json.dumps(api('POST', f'/api/v1/projects/{args.project_id}/onboarding'), indent=2))
+
+
+def cmd_projects_wordpress(args):
+    data = {'wordpress_url': args.wordpress_url, 'integration_key': args.integration_key}
+    if getattr(args, 'wp_username', None): data['wp_username'] = args.wp_username
+    print(json.dumps(api('POST', f'/api/v1/projects/{args.project_id}/wordpress', json_data=data), indent=2))
 
 
 def cmd_keywords_search(args):
@@ -356,14 +416,41 @@ def main():
     p.add_argument('--project-id', type=int, required=True)
     p.set_defaults(func=cmd_projects_get)
 
-    p = sub.add_parser('projects:update', help='Update project settings (instructions, description, publish time, timezone, backlink network)')
+    p = sub.add_parser('projects:update', help='Update project settings — the FULL UI surface (~30 fields). Use --json/--set for any field.')
     p.add_argument('--project-id', type=int, required=True)
     p.add_argument('--ai-instructions', type=str, help='Customize Article Instructions text')
     p.add_argument('--business-description', type=str)
     p.add_argument('--publish-time', type=str, help='24-hour HH:MM, e.g. 09:00')
     p.add_argument('--timezone', type=str, help='IANA name, e.g. Europe/Madrid')
     p.add_argument('--backlinks-network', type=str, choices=['yes', 'no', 'true', 'false', 'on', 'off'], help='Join/leave the backlink exchange network')
+    p.add_argument('--set', action='append', metavar='KEY=VALUE',
+                   help='Set any writable field (repeatable). Values are JSON-decoded: '
+                        '--set tone=Conversational --set internal_links_per_article=3 '
+                        "--set 'competitors=[\"https://a.com\"]'")
+    p.add_argument('--json', type=str, help='Raw JSON object of settings (the bulk-settings blob)')
+    p.add_argument('--json-file', type=str, help='Path to a JSON file of settings')
     p.set_defaults(func=cmd_projects_update)
+
+    p = sub.add_parser('projects:create', help='Create a new project (gated to paid slots) and optionally configure it')
+    p.add_argument('--website-url', type=str, required=True, help='Client website, e.g. https://client.com')
+    p.add_argument('--business-name', type=str)
+    p.add_argument('--business-description', type=str)
+    p.add_argument('--target-audience', action='append', metavar='AUDIENCE', help='Repeatable target-audience entry')
+    p.add_argument('--set', action='append', metavar='KEY=VALUE', help='Configure any settings field on create (repeatable, JSON-decoded)')
+    p.add_argument('--json', type=str, help='Raw JSON object of extra settings to apply on create')
+    p.add_argument('--json-file', type=str, help='Path to a JSON file of extra settings')
+    p.set_defaults(func=cmd_projects_create)
+
+    p = sub.add_parser('projects:onboard', help='Start keyword research + first articles (ASK THE USER FIRST — spends credits)')
+    p.add_argument('--project-id', type=int, required=True)
+    p.set_defaults(func=cmd_projects_onboard)
+
+    p = sub.add_parser('projects:wordpress', help='Connect/reconnect a WordPress site via the Distribb plugin')
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--wordpress-url', type=str, required=True, help='WordPress site URL')
+    p.add_argument('--integration-key', type=str, required=True, help='Distribb plugin Integration Key')
+    p.add_argument('--wp-username', type=str, help='Optional WordPress username')
+    p.set_defaults(func=cmd_projects_wordpress)
 
     p = sub.add_parser('keywords:search', help='Search for keyword ideas')
     p.add_argument('--project-id', type=int, required=True)

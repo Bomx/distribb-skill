@@ -19,8 +19,9 @@ Where the user sees and manages every article: Planned, Draft, and Published, pl
 
 ## Settings
 Where the user edits the project: business description, custom AI instructions, daily publish time, timezone, the backlink-network toggle, and their SEO data API keys (DataForSEO / Ahrefs for the Free Agentic plan, saved at https://distribb.io/settings#seo-keys).
-- Read: `GET /projects/:id`, `GET /business-context`.
-- Change: `PUT /projects/:id` (`ai_instructions`, `business_description`, `publish_time`, `timezone`, `backlinks_network`).
+- Read: `GET /projects/:id` (its `settings` object lists every writable key), `GET /business-context`.
+- Change: `PUT /projects/:id` — the full Settings UI (~30 fields: instructions, sitemap/blog URLs, content pillars, tone, writing profile, positioning, internal links, region, language, images/brand, banned phrases, competitors, toggles, publish time/timezone). Send only the keys you want; partial updates are safe. See SKILL.md "Project Settings" for the table.
+- Create + onboard a project: `POST /projects` (gated to paid slots), `POST /projects/:id/wordpress` (connect CMS), `POST /projects/:id/onboarding` (start keyword research — ask the user first).
 
 ## Integrations
 Where the user connects their CMS (WordPress, Webflow, Shopify, Ghost, Wix, Notion, GoHighLevel, Framer, API webhook), social accounts, and **Google Search Console**.
