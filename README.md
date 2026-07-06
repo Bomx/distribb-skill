@@ -41,6 +41,7 @@ No installation required for the API. The skill uses `curl` and `jq`. The first 
 | `/ai-visibility` | Find where AI engines should recommend you, and which listicles to pitch |
 | `/news-writer <site-url-or-niche>` | Turn fresh news in your niche into grounded drafts and queue them in Distribb to autopublish |
 | `/statistics-page-writer <topic>` | Deep-research and publish a sourced statistics page journalists love to link to |
+| `/youtube-motion-video <topic>` | Make a faceless motion-collage explainer video ("In a Nutshell" docu style), YouTube-SEO it, and publish it to the connected YouTube channel |
 
 Command files live in `commands/`. If they are not auto-registered by your installer, run `/distribb-setup` or copy `commands/*.md` into your project's `.claude/commands/` folder.
 
@@ -138,6 +139,7 @@ Distribb can create/register project-scoped Microworkers Basic Campaigns, list w
 | [`references/platform-guide.md`](./references/platform-guide.md) | Where things live in the app (calendar, settings, backlinks, optimizations) |
 | [`references/plans-and-backlinks.md`](./references/plans-and-backlinks.md) | Plans, the backlink exchange, and the Accelerator |
 | [`references/statistics-page-playbook.md`](./references/statistics-page-playbook.md) | How `/statistics-page-writer` deep-researches and builds a journalist-ready statistics page |
+| [`references/youtube-motion-video-playbook.md`](./references/youtube-motion-video-playbook.md) | How `/youtube-motion-video` makes a motion-collage explainer with the super-video-maker skill, YouTube-SEOs it, and publishes it to the connected YouTube channel |
 
 ## Sub-skills
 

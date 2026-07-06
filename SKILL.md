@@ -48,6 +48,7 @@ This skill ships ready-to-use slash commands so the user can drive the whole wor
 | `/ai-visibility` | Find where the user should be recommended by ChatGPT/Perplexity/Gemini and which listicles to pitch |
 | `/news-writer <site-url-or-niche>` | Newsjack: find fresh news in the niche, write grounded news drafts, and queue them in Distribb |
 | `/statistics-page-writer <topic>` | Deep-research and publish a sourced statistics page journalists cite for months |
+| `/youtube-motion-video <topic>` | Make a faceless motion-collage explainer video ("In a Nutshell" docu style), optimize it for YouTube SEO, and publish it to the connected YouTube channel |
 
 If these commands are not yet available when the user types them, run `/distribb-setup` (or copy this skill's `commands/*.md` into the project's `.claude/commands/` folder) to register them. See the **Slash Commands** section below.
 
@@ -735,6 +736,24 @@ Pushes the article to the user's connected CMS (WordPress, Webflow, Shopify, etc
 When an article is published to the user's CMS, Distribb automatically generates social media posts for every platform the user has connected (X/Twitter, LinkedIn, Reddit, Facebook, Instagram, etc.). The agent does not need to call any endpoint for this. It happens server-side.
 
 The social posts are created as drafts in the user's content calendar so they can review, edit, or schedule them from the Distribb dashboard. If the user has connected social accounts, publishing an article through the API triggers this automatically.
+
+### YouTube SEO With Motion Videos (`/youtube-motion-video`)
+
+Turn a keyword or concept into a short, faceless **motion-collage explainer video**
+(bold screen-print cutout collage visuals, a calm "In a Nutshell" documentary voice),
+optimize it for **YouTube SEO** with Distribb's real keyword + Search Console data, and
+publish it to the user's connected **YouTube** channel through Distribb, then close the
+loop with a companion article that embeds it.
+
+This is a hybrid workflow: Distribb is the SEO brain (keyword data, GSC, internal links,
+backlinks, the companion article) and the **`super-video-maker`** skill is the production
+engine (OpenAI `gpt-image-2` collage stills → Seedance 2.0 via fal.ai motion → ElevenLabs
+narration → captions). Install it once with `npx skills add Bomx/super-video-maker-skill`.
+
+Run it with `/youtube-motion-video <topic>` and follow **`references/youtube-motion-video-playbook.md`**
+for the full method (preflight, the collage look, the Seedance motion rules, the docu
+voice, the SEO packaging, and the connect-and-publish path). The user connects their own
+YouTube channel first at https://distribb.io/integrations ("Connect via Google").
 
 ### List Integrations
 
