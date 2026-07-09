@@ -49,6 +49,7 @@ This skill ships ready-to-use slash commands so the user can drive the whole wor
 | `/news-writer <site-url-or-niche>` | Newsjack: find fresh news in the niche, write grounded news drafts, and queue them in Distribb |
 | `/statistics-page-writer <topic>` | Deep-research and publish a sourced statistics page journalists cite for months |
 | `/youtube-motion-video <topic>` | Make a faceless motion-collage explainer video ("In a Nutshell" docu style), optimize it for YouTube SEO, and publish it to the connected YouTube channel |
+| `/instagram-carousel <article-id-or-keyword>` | Turn one article/keyword into a viral, save-driven Instagram carousel (cover hook, one idea per slide, comment-for-link play), publish it, and close the loop with a companion article |
 | `/review-video <competitor>` | Compile REAL, verified reviews of a competitor into a faceless "<competitor> reviews" video, position the connected project's own business as the alternative, append the project's own testimonials, and publish to YouTube + a companion article |
 
 If these commands are not yet available when the user types them, run `/distribb-setup` (or copy this skill's `commands/*.md` into the project's `.claude/commands/` folder) to register them. See the **Slash Commands** section below.
@@ -779,6 +780,31 @@ pulled from `business-context` — never a hardcoded company. Run it with
 `/review-video <competitor>` and show the user the verified reviews + script before any paid
 generation.
 
+### Instagram Carousels for SEO (`/instagram-carousel`)
+
+Instagram carousels are an **SEO tactic**, not just social. Since mid-2025 public posts from
+professional accounts are indexed by Google/Bing and cited by LLMs, and carousels manufacture
+the strongest predictor of AI-engine citations for a brand: **branded search**. They also
+carry the highest saves of any IG format (~9x a single image), and a save is the dominant
+ranking signal for educational content.
+
+This workflow re-architects **one Distribb article** (or one target keyword) into a viral,
+save-driven carousel using our 2026 best practices: a cover that teases (it carries ~80% of
+the outcome), an 8-slide swipe arc (cover -> promise -> one-idea-per-slide value -> recap ->
+CTA), the exact design system (1080x1350, safe zones, >=4.5:1 contrast, consistent template),
+keyword-rich captions + per-slide **alt text** (the indexable surfaces, since hashtags no
+longer drive reach), and the **comment-a-keyword-to-DM** link play (one ALL-CAPS keyword +
+misspelling variants + an auto-DM, which beats link-in-bio). It then closes the SEO loop with
+a companion Distribb article on the same keyword so the attention becomes indexable owned
+authority.
+
+Run it with `/instagram-carousel <article-id-or-keyword>` and follow
+**`references/instagram-carousel-playbook.md`** for the full method (the Carousel Maker JSON
+contract, the cover/hook formulas, the design specs, how to render the slides, the
+comment-for-link playbook, and the publish paths: Graph API, a scheduler, or a ready-to-post
+hand-off). The user connects their Instagram professional account first at
+https://distribb.io/integrations .
+
 ### List Integrations
 
 ```bash
@@ -1226,6 +1252,7 @@ This skill ships a set of slash commands in its `commands/` folder so the user c
 | `/ai-visibility` | (none) | AI-search visibility + listicle outreach research |
 | `/news-writer` | `<site-url-or-niche>` | Newsjack: find fresh news, write grounded drafts, queue in Distribb |
 | `/statistics-page-writer` | `<industry-or-topic>` | Deep-research and publish a journalist-ready statistics page |
+| `/instagram-carousel` | `<article-id-or-keyword>` | Turn one article/keyword into a viral, save-driven Instagram carousel (cover hook, comment-for-link play), publish it, and close the loop with a companion article |
 | `/youtube-motion-video` | `<topic>` | Faceless motion-collage explainer, YouTube-SEO packaged, published to the connected channel (drives `super-video-maker`) |
 | `/review-video` | `<competitor>` | Compile REAL, verified competitor reviews into a "<competitor> reviews" video, position the connected project as the alternative, append its own testimonials, publish to YouTube + companion article (drives `super-video-maker`) |
 

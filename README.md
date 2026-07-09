@@ -42,6 +42,7 @@ No installation required for the API. The skill uses `curl` and `jq`. The first 
 | `/news-writer <site-url-or-niche>` | Turn fresh news in your niche into grounded drafts and queue them in Distribb to autopublish |
 | `/statistics-page-writer <topic>` | Deep-research and publish a sourced statistics page journalists love to link to |
 | `/youtube-motion-video <topic>` | Make a faceless motion-collage explainer video ("In a Nutshell" docu style), YouTube-SEO it, and publish it to the connected YouTube channel |
+| `/instagram-carousel <article-id-or-keyword>` | Turn one article or keyword into a viral, save-driven Instagram carousel (cover hook, one idea per slide, comment-for-link play), publish it, and close the SEO loop with a companion article |
 
 Command files live in `commands/`. If they are not auto-registered by your installer, run `/distribb-setup` or copy `commands/*.md` into your project's `.claude/commands/` folder.
 
@@ -140,6 +141,7 @@ Distribb can create/register project-scoped Microworkers Basic Campaigns, list w
 | [`references/plans-and-backlinks.md`](./references/plans-and-backlinks.md) | Plans, the backlink exchange, and the Accelerator |
 | [`references/statistics-page-playbook.md`](./references/statistics-page-playbook.md) | How `/statistics-page-writer` deep-researches and builds a journalist-ready statistics page |
 | [`references/youtube-motion-video-playbook.md`](./references/youtube-motion-video-playbook.md) | How `/youtube-motion-video` makes a motion-collage explainer with the super-video-maker skill, YouTube-SEOs it, and publishes it to the connected YouTube channel |
+| [`references/instagram-carousel-playbook.md`](./references/instagram-carousel-playbook.md) | How `/instagram-carousel` turns a Distribb article/keyword into a save-driven Instagram carousel for SEO: the Carousel Maker JSON contract, cover/hook system, design specs, the comment-for-link play, rendering, and the publish paths |
 
 ## Sub-skills
 
