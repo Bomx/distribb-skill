@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, Glob, Grep, WebFetch, WebSearch, Write
 
 Run the AI search visibility + listicle outreach research. Scope: `$ARGUMENTS` (default: the user's own Distribb project).
 
+**If the target is the user's own Distribb project, check Distribb's already-tracked AEO data FIRST.** Distribb already tracks AI-search visibility for the project, so prefer reading it over re-deriving everything with live `WebSearch`: `GET /api/v1/ai-visibility?view=summary` (visibility score, share-of-voice, per-engine citation status), `?view=competitors`, and `?view=cited_pages`, and add prompts worth tracking with `POST /api/v1/ai-visibility/prompts` (body `{project_id, prompt}`). If it returns `has_data: false` (no scan yet), trigger one with `POST /api/v1/ai-visibility/scan` and poll the summary. Keep the WebSearch-based workflow below as the path for **non-Distribb projects** or **when the API returns no data**.
+
 Load the Distribb skill and follow the **Workflow: AI Search Visibility & Listicle Backlink Outreach** section in `SKILL.md`. In short:
 
 1. Read `GET /api/v1/business-context` for the product positioning and competitors (if running for a non-default project).

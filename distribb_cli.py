@@ -11,6 +11,8 @@ Usage:
   python distribb_cli.py articles:list --project-id 42
   python distribb_cli.py articles:create --project-id 42 --keyword "best crm tools" --title "10 Best CRM Tools" --content "<h2>...</h2>..."
   python distribb_cli.py articles:update --article-id 123 --keyword "best crm software" --style listicle
+  python distribb_cli.py articles:update --article-id 123 --category "Accessibility Guides"
+  python distribb_cli.py articles:update --article-id 123 --published-at 2024-02-05T09:00:00Z
   python distribb_cli.py articles:update --article-id 123 --unschedule
   python distribb_cli.py articles:delete --article-id 123
   python distribb_cli.py articles:publish --article-id 123
@@ -28,6 +30,10 @@ Usage:
   python distribb_cli.py internal-links:get --project-id 42 --keyword "crm software"
   python distribb_cli.py integrations:list --project-id 42
   python distribb_cli.py search-console:get --project-id 42 --days 28
+  python distribb_cli.py gbp:status --project-id 42
+  python distribb_cli.py gbp:reviews --project-id 42 --unreplied
+  python distribb_cli.py gbp:reply --project-id 42 --review-id "accounts/.../reviews/AbFvOq..." --message "Thanks Sarah!"
+  python distribb_cli.py gbp:posts:create --project-id 42 --text "Spring checks now booking" --link https://acme.com/offer
   python distribb_cli.py suggestions:list --project-id 42 --status pending
   python distribb_cli.py suggestions:run --project-id 42
   python distribb_cli.py suggestions:get --suggestion-id 123
@@ -66,7 +72,7 @@ def api(method, path, params=None, json_data=None):
         elif method == 'PUT':
             r = requests.put(url, headers=headers, json=json_data, timeout=60)
         elif method == 'DELETE':
-            r = requests.delete(url, headers=headers, timeout=30)
+            r = requests.delete(url, headers=headers, json=json_data, timeout=30)
         else:
             r = requests.post(url, headers=headers, json=json_data, timeout=60)
         if r.status_code == 401:
@@ -107,6 +113,8 @@ def cmd_articles_create(args):
     if args.schedule: data['scheduled_date'] = args.schedule
     if args.style: data['article_style'] = args.style
     if args.status: data['status'] = args.status
+    if args.category is not None: data['category'] = args.category
+    if args.published_at is not None: data['published_at'] = args.published_at
     print(json.dumps(api('POST', '/api/v1/articles', json_data=data), indent=2))
 
 
@@ -129,12 +137,14 @@ def cmd_articles_update(args):
     if args.keyword is not None: data['keyword'] = args.keyword
     if args.style is not None: data['article_style'] = args.style
     if args.status is not None: data['status'] = args.status
+    if args.category is not None: data['category'] = args.category
+    if args.published_at is not None: data['published_at'] = args.published_at
     if args.unschedule:
         data['scheduled_date'] = None  # clears the date; a Planned article drops to Draft
     elif args.schedule is not None:
         data['scheduled_date'] = args.schedule
     if not data:
-        print(json.dumps({"error": "Nothing to update. Pass at least one of --title/--content/--keyword/--style/--status/--schedule/--unschedule/--meta-description."}))
+        print(json.dumps({"error": "Nothing to update. Pass at least one of --title/--content/--keyword/--style/--status/--schedule/--unschedule/--meta-description/--category/--published-at."}))
         sys.exit(1)
     print(json.dumps(api('PUT', f'/api/v1/articles/{args.article_id}', json_data=data), indent=2))
 
@@ -253,6 +263,43 @@ def cmd_search_console(args):
     if args.days: params['days'] = args.days
     if args.limit: params['limit'] = args.limit
     print(json.dumps(api('GET', '/api/v1/search-console', params=params), indent=2))
+
+
+def cmd_gbp_status(args):
+    print(json.dumps(api('GET', '/api/v1/gbp/status', params={'project_id': args.project_id}), indent=2))
+
+
+def cmd_gbp_reviews(args):
+    params = {'project_id': args.project_id}
+    if args.unreplied: params['has_reply'] = 'false'
+    elif args.has_reply is not None: params['has_reply'] = args.has_reply
+    if args.min_rating: params['min_rating'] = args.min_rating
+    if args.max_rating: params['max_rating'] = args.max_rating
+    if args.limit: params['limit'] = args.limit
+    if args.cursor: params['cursor'] = args.cursor
+    print(json.dumps(api('GET', '/api/v1/gbp/reviews', params=params), indent=2))
+
+
+def cmd_gbp_reply(args):
+    body = {'project_id': args.project_id, 'review_id': args.review_id, 'message': args.message}
+    print(json.dumps(api('POST', '/api/v1/gbp/reviews/reply', json_data=body), indent=2))
+
+
+def cmd_gbp_reply_delete(args):
+    body = {'project_id': args.project_id, 'review_id': args.review_id}
+    print(json.dumps(api('DELETE', '/api/v1/gbp/reviews/reply', json_data=body), indent=2))
+
+
+def cmd_gbp_post_create(args):
+    body = {'project_id': args.project_id, 'text': args.text}
+    if args.link: body['link'] = args.link
+    if args.image_url: body['image_url'] = args.image_url
+    if args.scheduled_date: body['scheduled_date'] = args.scheduled_date
+    print(json.dumps(api('POST', '/api/v1/gbp/posts', json_data=body), indent=2))
+
+
+def cmd_gbp_analytics(args):
+    print(json.dumps(api('GET', '/api/v1/gbp/analytics', params={'project_id': args.project_id}), indent=2))
 
 
 def cmd_suggestions_list(args):
@@ -385,6 +432,8 @@ def main():
     p.add_argument('--schedule', type=str, help='ISO 8601 date')
     p.add_argument('--style', type=str, choices=['professional', 'casual', 'technical', 'listicle', 'how-to'])
     p.add_argument('--status', type=str, choices=['Draft', 'Planned'])
+    p.add_argument('--category', type=str, help='CMS category NAME to assign (must already exist on the CMS)')
+    p.add_argument('--published-at', type=str, help='Past ISO 8601 timestamp to BACKDATE the CMS post (does not move it on the calendar)')
     p.set_defaults(func=cmd_articles_create)
 
     p = sub.add_parser('articles:get', help='Get article details')
@@ -395,7 +444,7 @@ def main():
     p.add_argument('--article-id', type=int, required=True)
     p.set_defaults(func=cmd_articles_publish)
 
-    p = sub.add_parser('articles:update', help='Update an article (title, content, keyword, style, status, schedule)')
+    p = sub.add_parser('articles:update', help='Update an article (title, content, keyword, style, status, schedule, category, published-at)')
     p.add_argument('--article-id', type=int, required=True)
     p.add_argument('--title', type=str)
     p.add_argument('--content', type=str)
@@ -406,6 +455,8 @@ def main():
     p.add_argument('--status', type=str, choices=['Draft', 'Planned'])
     p.add_argument('--schedule', type=str, help='ISO 8601 date to (re)schedule')
     p.add_argument('--unschedule', action='store_true', help='Clear the scheduled date (Planned -> Draft)')
+    p.add_argument('--category', type=str, help='CMS category NAME to assign (must already exist on the CMS); pass "" to clear')
+    p.add_argument('--published-at', type=str, help='Past ISO 8601 timestamp to BACKDATE the CMS post (does not move it on the calendar); pass "" to clear')
     p.set_defaults(func=cmd_articles_update)
 
     p = sub.add_parser('articles:delete', help='Delete a Draft or Planned article')
@@ -485,6 +536,43 @@ def main():
     p.add_argument('--days', type=int, help='Lookback window in days (default 28, max 90)')
     p.add_argument('--limit', type=int, help='Rows per list (default 25, max 100)')
     p.set_defaults(func=cmd_search_console)
+
+    p = sub.add_parser('gbp:status', help="Google Business Profile connection + live review summary")
+    p.add_argument('--project-id', type=int, required=True)
+    p.set_defaults(func=cmd_gbp_status)
+
+    p = sub.add_parser('gbp:reviews', help="List Google reviews live from Google (filter/paginate)")
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--unreplied', action='store_true', help='Only reviews without a business reply')
+    p.add_argument('--has-reply', type=str, choices=['true', 'false'], help='Filter by reply status')
+    p.add_argument('--min-rating', type=int, choices=[1, 2, 3, 4, 5])
+    p.add_argument('--max-rating', type=int, choices=[1, 2, 3, 4, 5])
+    p.add_argument('--limit', type=int, help='1-50, default 25')
+    p.add_argument('--cursor', type=str, help="Previous response's next_cursor")
+    p.set_defaults(func=cmd_gbp_reviews)
+
+    p = sub.add_parser('gbp:reply', help="Post the business's PUBLIC reply to a review (confirm wording with the user first)")
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--review-id', type=str, required=True, help='review_id from gbp:reviews')
+    p.add_argument('--message', type=str, required=True)
+    p.set_defaults(func=cmd_gbp_reply)
+
+    p = sub.add_parser('gbp:reply:delete', help="Delete the business's reply on a review")
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--review-id', type=str, required=True)
+    p.set_defaults(func=cmd_gbp_reply_delete)
+
+    p = sub.add_parser('gbp:posts:create', help="Queue a Google Business post (draft, or scheduled with --scheduled-date)")
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--text', type=str, required=True, help='Post text, max 1500 chars')
+    p.add_argument('--link', type=str, help="Becomes the post's Learn More button")
+    p.add_argument('--image-url', type=str, help='Public http(s) image URL')
+    p.add_argument('--scheduled-date', type=str, help="'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM' UTC")
+    p.set_defaults(func=cmd_gbp_post_create)
+
+    p = sub.add_parser('gbp:analytics', help="Analytics for Google Business posts published through Distribb")
+    p.add_argument('--project-id', type=int, required=True)
+    p.set_defaults(func=cmd_gbp_analytics)
 
     p = sub.add_parser('suggestions:list', help="List a project's content-optimization suggestions")
     p.add_argument('--project-id', type=int, required=True)

@@ -6,7 +6,7 @@ npx skills add Bomx/distribb-skill
 
 # Distribb SEO Skill
 
-SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: real keyword data, backlinks from real businesses, a Google Search Console audit, CMS publishing, content calendar, social repurposing, Microworkers campaign management, and analytics.
+SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: real keyword data, backlinks from real businesses, a Google Search Console audit, CMS publishing, content calendar, social repurposing, Google Business Profile management (live reviews, public replies, Google posts), Microworkers campaign management, and analytics.
 
 ## Quick Start
 
@@ -43,6 +43,8 @@ No installation required for the API. The skill uses `curl` and `jq`. The first 
 | `/statistics-page-writer <topic>` | Deep-research and publish a sourced statistics page journalists love to link to |
 | `/youtube-motion-video <topic>` | Make a faceless motion-collage explainer video ("In a Nutshell" docu style), YouTube-SEO it, and publish it to the connected YouTube channel |
 | `/instagram-carousel <article-id-or-keyword>` | Turn one article or keyword into a viral, save-driven Instagram carousel (cover hook, one idea per slide, comment-for-link play), publish it, and close the SEO loop with a companion article |
+| `/review-video <competitor>` | Compile REAL, verified competitor reviews into a "<competitor> reviews" video, position your business as the alternative, and publish to YouTube + a companion article |
+| `/gbp` | Google Business Profile manager: live review triage, public review replies, Google posts, post analytics |
 
 Command files live in `commands/`. If they are not auto-registered by your installer, run `/distribb-setup` or copy `commands/*.md` into your project's `.claude/commands/` folder.
 
@@ -107,6 +109,20 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 # Integrations
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/integrations?project_id=42" | jq .
+
+# Google Business Profile: status + live reviews + public reply + posts
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/gbp/status?project_id=42" | jq .
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/gbp/reviews?project_id=42&has_reply=false" | jq .
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "review_id": "<review_id from /gbp/reviews>", "message": "Thanks Sarah!"}' \
+  https://distribb.io/api/v1/gbp/reviews/reply | jq .
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "text": "Spring checks now booking", "link": "https://acme.com/offer"}' \
+  https://distribb.io/api/v1/gbp/posts | jq .
 
 # Microworkers campaigns
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \

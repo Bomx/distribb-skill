@@ -1,6 +1,6 @@
 ---
 name: distribb
-description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, internal linking, social media repurposing, and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, publish to their CMS, manage their content calendar, or manage Microworkers campaigns.
+description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, internal linking, social media repurposing, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, or manage Microworkers campaigns.
 homepage: https://distribb.io
 metadata: {"clawdbot":{"emoji":"🔍","requires":{"env":["DISTRIBB_API_KEY"]}}}
 ---
@@ -51,6 +51,7 @@ This skill ships ready-to-use slash commands so the user can drive the whole wor
 | `/youtube-motion-video <topic>` | Make a faceless motion-collage explainer video ("In a Nutshell" docu style), optimize it for YouTube SEO, and publish it to the connected YouTube channel |
 | `/instagram-carousel <article-id-or-keyword>` | Turn one article/keyword into a viral, save-driven Instagram carousel (cover hook, one idea per slide, comment-for-link play), publish it, and close the loop with a companion article |
 | `/review-video <competitor>` | Compile REAL, verified reviews of a competitor into a faceless "<competitor> reviews" video, position the connected project's own business as the alternative, append the project's own testimonials, and publish to YouTube + a companion article |
+| `/gbp` | Google Business Profile manager: live review triage, draft + post public review replies, queue Google Business posts, post analytics |
 
 If these commands are not yet available when the user types them, run `/distribb-setup` (or copy this skill's `commands/*.md` into the project's `.claude/commands/` folder) to register them. See the **Slash Commands** section below.
 
@@ -113,6 +114,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Generate Article** | Submit source content, Distribb AI expands into full SEO article (Pro plan only) | `POST /articles/generate` |
 | **Keyword Research** | Search volume, difficulty scores, keyword ideas. Paid plans use Distribb data; Free Agentic uses the user's own DataForSEO or Ahrefs key (returns HTTP 402 if not set) | `POST /keywords/search` (alias: `POST /keywords/research`) |
 | **Backlink Exchange** | Get real backlinks from other businesses in the network | `GET /backlink-targets` |
+| **Backlink Ledger** | Full link-level detail behind the aggregate status: earned + scheduled links (source domain, DR, business, target URL, status, date) plus a velocity/gap summary | `GET /backlinks` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
 | **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id` |
 | **Project Settings** | Read & edit the FULL settings surface (~30 fields): instructions, sitemap/blog URLs, content pillars, tone, writing profile, positioning, images/brand, competitors, toggles, publish time/timezone | `GET /projects/:id`, `PUT /projects/:id` |
@@ -120,8 +122,10 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Internal Linking** | Get your published article URLs to cross-link in new content | `GET /internal-links` |
 | **Business Context** | Get brand voice, competitors, custom instructions | `GET /business-context` |
 | **Integrations** | See connected CMS platforms | `GET /integrations` |
-| **Google Search Console** | Pull the user's real GSC performance, top queries, top pages, clicks, impressions, CTR, position (if they've connected GSC) | `GET /search-console` |
-| **Content Optimizations** | Find pages worth rewriting (mostly from GSC), review the AI's before/after diff, then approve and publish the rewrite to the CMS | `GET /suggestions`, `POST /suggestions/run`, `POST /suggestions/:id/approve\|publish\|regenerate\|reject` |
+| **Google Search Console** | Pull the user's real GSC performance, top queries, top pages, clicks, impressions, CTR, position (if they've connected GSC). Aliased as `GET /rankings` and `GET /analytics` (search performance, NOT web-session analytics) | `GET /search-console` |
+| **Google Business Profile** | Live Google reviews (reviewer, rating, text, reply status), post/delete the business's PUBLIC review replies, queue Google Business posts, post-level analytics (if they've connected Google Business) | `GET /gbp/status`, `GET /gbp/reviews`, `POST\|DELETE /gbp/reviews/reply`, `POST /gbp/posts`, `GET /gbp/analytics` |
+| **AI Visibility (AEO)** | Distribb's already-tracked AI-search visibility: visibility score, share-of-voice, per-engine citation status (ChatGPT, Perplexity, Gemini, AI Overviews, AI Mode), tracked prompts, cited pages, on-demand scans | `GET /ai-visibility`, `POST /ai-visibility/scan`, `POST\|DELETE /ai-visibility/prompts` |
+| **Content Optimizations** | Find pages worth rewriting (mostly from GSC), review the AI's before/after diff, then approve and publish the rewrite to the CMS. Filter by opportunity with `?type=` (cannibalisation, declining_page, striking_distance, ctr_underperform, ...) | `GET /suggestions`, `POST /suggestions/run`, `POST /suggestions/:id/approve\|publish\|regenerate\|reject` |
 | **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
 | **Microworkers Campaign Management** | Create/register campaigns, list submissions, and rate worker slots for Reddit, Quora, YouTube, or generic proof tasks | `GET/POST /microworkers/campaigns`, `GET /microworkers/campaigns/:id/slots`, `POST /microworkers/slots/:slot_id/rate` |
 
@@ -169,11 +173,11 @@ Users often ask "where do I see X?" Here is the map (full detail in `references/
 | **Dashboard** | Overview of projects and recent activity | `GET /projects` |
 | **Content Calendar** | See and manage planned / draft / published articles and their schedule | `GET /articles`, `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id` |
 | **Settings** | Business description, custom AI instructions, publish time, timezone, backlink-network toggle, SEO data keys | `GET /projects/:id`, `PUT /projects/:id` |
-| **Integrations** | Connect CMS, social accounts, and Google Search Console | `GET /integrations`, `GET /search-console` |
-| **Backlinks** | See backlinks earned and given, and credits | `GET /backlinks/status`, `GET /backlink-targets` |
+| **Integrations** | Connect CMS, social accounts, Google Search Console, and Google Business Profile | `GET /integrations`, `GET /search-console`, `GET /gbp/status` |
+| **Backlinks** | See backlinks earned and given, and credits (aggregate) or the full link-by-link ledger | `GET /backlinks/status`, `GET /backlinks`, `GET /backlink-targets` |
 | **Optimizations / Suggestions** | Review and approve GSC-driven rewrites of underperforming pages | `GET /suggestions`, `POST /suggestions/run`, approve/publish |
 
-**Yes, you (the agent) can check backlinks for the user.** Use `GET /backlinks/status?project_id=...` for credits and counts, and `GET /backlink-targets` for who they can link to next. The dashboard Backlinks page shows the same data visually.
+**Yes, you (the agent) can check backlinks for the user.** Use `GET /backlinks/status?project_id=...` for credits and counts, `GET /backlinks?project_id=...` for the full link-by-link ledger (every earned and scheduled link), and `GET /backlink-targets` for who they can link to next. The dashboard Backlinks page shows the same data visually.
 
 ---
 
@@ -558,6 +562,58 @@ Distribb connects real businesses that exchange backlinks with each other. When 
 
 The `category` field shows how the keyword was classified (e.g. "saas", "ecommerce"). Targets are capped at 5 per request. Include 1-2 backlink targets per article as natural references. Do NOT fabricate information about linked sites. Use topically relevant anchor text.
 
+### Backlink Ledger (full link-level detail)
+
+`GET /backlinks/status` gives the aggregate (credits + counts). `GET /backlinks` gives the **link-by-link ledger** behind it: every earned (verified) link and every scheduled/upcoming link, with the source domain, source Domain Rating, source business name, the target URL on the user's own site, status, and date, plus a velocity + competitor-gap summary. Use it to answer "which sites actually link to me, and how strong are they?"
+
+```bash
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/backlinks?project_id=42" | jq .
+```
+
+**Query parameters:** `project_id` (required), `earned_limit` (default 100, max 500), `scheduled_limit` (default 50, max 200).
+
+**Response (200):**
+```json
+{
+  "project_id": 42,
+  "earned": [
+    {
+      "id": 55123,
+      "source_domain": "partner-site.com",
+      "source_business": "Partner Co",
+      "source_dr": 61,
+      "source_url": "https://partner-site.com/related-article",
+      "target_url": "https://acme.com/blog/crm-guide",
+      "status": "Verified",
+      "date": "2026-06-14"
+    }
+  ],
+  "earned_count": 1,
+  "scheduled": [
+    {
+      "id": 55130,
+      "source_domain": "another-partner.com",
+      "source_business": "Another Partner",
+      "source_dr": 48,
+      "target_url": "https://acme.com/blog/pricing",
+      "status": "Scheduled",
+      "scheduled_since": "2026-06-30"
+    }
+  ],
+  "scheduled_count": 1,
+  "velocity": {
+    "velocity_cap": 8,
+    "velocity_used": 3,
+    "competitor_gap_percent": 42,
+    "competitor_gap_target": 120
+  },
+  "note": "Per-link anchor text is not captured yet; anchor-mix distribution is not included."
+}
+```
+
+Scheduled links usually have no `source_url` yet (the linking article is still being written), so only `source_domain`/`source_business`/`source_dr` are populated for them. **Per-link anchor text is not tracked yet**, so this endpoint intentionally does NOT return an anchor-text-mix breakdown. Do not infer or fabricate one.
+
 ### Generate Article (Pro plan only)
 
 If the user wants Distribb to write the article from their source content (notes, drafts, talking points), use this endpoint. Distribb's AI will expand it into a full SEO article with YouTube videos, images, quotes, backlinks, and internal links. Costs 1 article credit. Not available on the Agentic plan.
@@ -667,7 +723,10 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123 | jq .
 ```
 
-**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`. Send only the fields you want to change. Changing `keyword` also regenerates the article's slug. Scheduling is symmetric: sending a `scheduled_date` on a `Draft` promotes it to `Planned` (so it actually enters the publish pipeline), and sending `"scheduled_date": null` **unschedules** it, dropping a `Planned` article back to `Draft`. Pass an explicit `status` if you want to override either default.
+**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`, `category`, `published_at`. Send only the fields you want to change. Changing `keyword` also regenerates the article's slug. Scheduling is symmetric: sending a `scheduled_date` on a `Draft` promotes it to `Planned` (so it actually enters the publish pipeline), and sending `"scheduled_date": null` **unschedules** it, dropping a `Planned` article back to `Draft`. Pass an explicit `status` if you want to override either default.
+
+- `category`: the CMS category NAME to assign (e.g. `"Accessibility Guides"`). It must ALREADY exist on the destination CMS (WordPress or GoHighLevel); Distribb resolves the name to that platform's category at publish time and cannot create new categories. Send `""` to clear it. Detection ships for WordPress and GoHighLevel; other CMSs ignore it for now.
+- `published_at`: a PAST ISO 8601 timestamp used to BACKDATE the post on the CMS (e.g. `"2024-02-05T09:00:00Z"`). This changes only the date the CMS records, NOT when Distribb publishes and NOT the article's position on the content calendar (that is `scheduled_date`). Send `""`/`null` to clear it. Backdating is applied on GoHighLevel today.
 
 **Response (200):**
 ```json
@@ -757,29 +816,6 @@ for the full method (preflight, the collage look, the Seedance motion rules, the
 voice, the SEO packaging, and the connect-and-publish path). The user connects their own
 YouTube channel first at https://distribb.io/integrations ("Connect via Google").
 
-### Competitor Reviews Video (`/review-video`)
-
-Turn the keyword **"<competitor> reviews"** into a fast, faceless voiceover montage of **real,
-verified** competitor reviews that names the recurring complaints and positions **the connected
-project's own business** as the alternative that fixes them, then hands off to the project's own
-customer testimonials and ends on the project's CTA. It ranks for a high-intent, mid-decision
-keyword and converts by pairing the competitor's own customers' words with a truthful "here's the
-tool that closes exactly these gaps."
-
-This is a hybrid workflow like `/youtube-motion-video`: Distribb is the SEO brain (the keyword,
-GSC, the project's business context, YouTube publishing, the companion article + backlinks) and
-the **`super-video-maker`** skill is the production engine (research fan-out + adversarial review
-verification → real review screenshots → ElevenLabs VO → karaoke captions → a three-part concat
-that appends the project's own testimonial reel). Install it once with
-`npx skills add Bomx/super-video-maker-skill` and follow its **`REVIEW_VIDEO_PLAYBOOK.md`**.
-
-**Guardrail:** only real, verified, attributable reviews go on screen — never fabricate,
-embellish, or doctor a review, and be honest about the competitor's overall rating (win on the
-*pattern* in the complaints). The alternative is always **the connected project's business**,
-pulled from `business-context` — never a hardcoded company. Run it with
-`/review-video <competitor>` and show the user the verified reviews + script before any paid
-generation.
-
 ### Instagram Carousels for SEO (`/instagram-carousel`)
 
 Instagram carousels are an **SEO tactic**, not just social. Since mid-2025 public posts from
@@ -821,7 +857,13 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/search-console?project_id=42&days=28&limit=25" | jq .
 ```
 
-**Query parameters:** `project_id` (required), `days` (default 28, max 90), `limit` (rows per list, default 25, max 100).
+**Query parameters:** `project_id` (required), `days` (default 28, max 90), `limit` (rows per list, default 25, max 1000), `start_row` (pagination offset, default 0), `compare` (`true` to add period-over-period deltas vs the immediately preceding window of equal length).
+
+**Aliases:** `GET /rankings` and `GET /analytics` are documented aliases of this endpoint (same handler, same parameters and response). They serve Search-Console **search performance** (clicks, impressions, CTR, position by query and by page), NOT web-session analytics. If a user asks for "analytics" expecting sessions/bounce-rate/traffic-source data, clarify that Distribb exposes Search-Console performance, not a web-analytics product.
+
+**Pagination:** page through large result sets with `start_row`. The response includes a `pagination` block with the current `limit`, `start_row`, and a `next_start_row` (null when there are no more rows). Fetch the next page by passing `start_row=next_start_row`.
+
+**Compare (`compare=true`):** adds a `comparison` block with `previous_date_range`, `previous_totals`, and `delta_totals`, and adds `delta_clicks`, `delta_impressions`, `delta_position`, and `is_new` to each query/page row. Use it to spot rising or decaying queries and pages at a glance.
 
 **Response (200, connected):**
 ```json
@@ -856,6 +898,166 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 **How to use the data:** queries with lots of impressions but low CTR or an average position of ~8-20 are the best targets, write a new article or refresh an existing one for them. Pages at the bottom of page 1 (position ~8-12) often just need internal links and a content refresh to climb. Pair this with `POST /articles` (write the piece) and `GET /internal-links` (cross-link it).
 
+### Google Business Profile (reviews, replies, posts, analytics)
+
+Act on the user's **connected Google Business Profile**: read their Google reviews live, post or delete the business's public review replies, queue Google Business posts, and pull post analytics. Local-SEO leverage in one surface — reviews with owner replies convert better and fresher profiles rank better in the map pack. **Requires the Google Business integration** (Integrations page -> 'Add Integration' -> 'Google Business', signed in with the Google account that manages the profile).
+
+```bash
+# Connection + live review summary (business name, address, totals, unreplied count)
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/gbp/status?project_id=42" | jq .
+```
+
+**Response (200, connected):**
+```json
+{
+  "connected": true,
+  "business_name": "Fusion Electrical & Carpentry Projects",
+  "location_address": "11/23 Lake Road, Tuggerah, NSW",
+  "connected_at": "2026-07-10T01:46:44",
+  "review_notifications_subscribed": true,
+  "total_reviews": 96,
+  "average_rating": 5,
+  "unreplied_count": 50,
+  "unreplied_count_is_partial": true,
+  "capabilities": ["list Google reviews (live)", "reply to reviews / delete a reply", "publish Google Business posts (via the social pipeline)", "post-level analytics for posts published through Distribb"],
+  "not_available": "Location performance insights (calls, direction requests, website clicks, search keywords), Q&A, photo uploads, and business-info edits are not available through this connection."
+}
+```
+
+When `connected` is `false` the body carries `instructions_for_agent` — relay it verbatim and stop until the user connects.
+
+**List reviews (live from Google):**
+
+```bash
+# Needs-reply triage: unreplied reviews first
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/gbp/reviews?project_id=42&has_reply=false&limit=25" | jq .
+
+# Negative/neutral reviews only
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/gbp/reviews?project_id=42&max_rating=3" | jq .
+```
+
+**Query parameters:** `project_id` (required), `has_reply` (`false` = needs-reply triage), `min_rating`/`max_rating` (1-5), `sort_by` (`date`|`rating`), `sort_order` (`asc`|`desc`), `limit` (1-50, default 25), `cursor` (pass a previous response's `next_cursor` while `has_more` is true).
+
+Each review: `review_id`, `reviewer_name`, `rating`, `text`, `created`, `has_reply`, `reply_text`, `reply_created`, `review_url`. The response's `total_reviews` / `average_rating` reflect the **current filter** (with `has_reply=false`, `total_reviews` is the unreplied total).
+
+**Reply to a review (PUBLIC — confirm wording with the user first):**
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "review_id": "accounts/.../locations/.../reviews/AbFvOq...", "message": "Thanks Sarah — glad the switchboard upgrade went smoothly. See you on the next project!"}' \
+  https://distribb.io/api/v1/gbp/reviews/reply | jq .
+
+# Remove a posted reply (the review itself cannot be deleted)
+curl -s -X DELETE -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "review_id": "accounts/.../locations/.../reviews/AbFvOq..."}' \
+  https://distribb.io/api/v1/gbp/reviews/reply | jq .
+```
+
+Reply etiquette the agent should follow: write in the project's brand voice, thank the reviewer by name, reference something specific from their review, keep it short (2-4 sentences, max 4000 chars). For negative reviews: stay professional, own what's ownable, move resolution offline ("call us at ..."). Never argue. To EDIT a live reply, just reply again with the new text (Google keeps one owner reply per review); to remove it, use DELETE.
+
+**Create a Google Business post:**
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "text": "Spring switchboard-safety checks are now booking...", "link": "https://acme.com/switchboard-checks", "scheduled_date": "2026-07-15 09:00"}' \
+  https://distribb.io/api/v1/gbp/posts | jq .
+```
+
+Body: `text` (required, max 1500 chars), `link` (optional, becomes the post's **Learn More** button), `image_url` (optional, public http(s) image), `scheduled_date` (optional, `YYYY-MM-DD` or `YYYY-MM-DD HH:MM` UTC). With `scheduled_date` the post is `scheduled` and auto-publishes at that time; without it the post is saved as a `draft` for review in the Social Composer. Returns **201** with `post_id` + `status`. Articles published through Distribb also auto-repurpose to Google Business when the integration is connected — use this endpoint for standalone posts (offers, updates, seasonal pushes).
+
+**Post analytics:**
+
+```bash
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/gbp/analytics?project_id=42" | jq .
+```
+
+Covers Google Business posts published through Distribb (post counts + per-post engagement where Google provides it).
+
+**Agent contract:**
+- Review counts, ratings, and review text must come **only** from these payloads — never estimate or invent them.
+- Replies are **public on Google immediately** under the business name. Unless the user already supplied or approved the exact wording, show the draft and get a go-ahead before `POST /gbp/reviews/reply`. Bulk-replying is fine once the user approves the approach and tone (e.g. "reply to all unreplied 5-star reviews, one line each, varied wording").
+- This connection **cannot** read location insights (calls, direction requests, website clicks, search keywords), Q&A, photos, or edit business info. Say so when asked instead of promising them.
+- A `404` with `instructions_for_agent` on the write endpoints means Google Business is not connected — relay the instructions.
+
+**Good `/gbp` workflow:** `GET /gbp/status` -> if `unreplied_count > 0`, pull `has_reply=false` reviews -> draft replies in the brand voice (get approval) -> post them -> finish with a queued Google Business post pointing at the latest published article.
+
+### AI Visibility (AEO)
+
+Read Distribb's **already-tracked** AI-search visibility for a project: how often AI engines cite the site, the share-of-voice vs competitors, per-engine citation status, the tracked prompts, and the exact pages engines cited. This is the API-key mirror of the dashboard AI-visibility pane (same `ai_citation_tracker` backend), so an agent can pull it directly instead of re-deriving everything with live `WebSearch`. The five tracked engines are ChatGPT, Perplexity, Gemini, Google AI Overviews, and Google AI Mode.
+
+```bash
+# Summary: visibility score, share-of-voice, per-engine cited/not, scan state
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/ai-visibility?project_id=42&view=summary" | jq .
+
+# Other views: prompts (paged), competitors (share-of-voice), cited_pages (your cited URLs)
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/ai-visibility?project_id=42&view=prompts&page=1&per_page=10" | jq .
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/ai-visibility?project_id=42&view=competitors" | jq .
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/ai-visibility?project_id=42&view=cited_pages" | jq .
+```
+
+**Query parameters:** `project_id` (required), `view` (`summary` default, or `prompts` | `competitors` | `cited_pages`). For `view=prompts`: `page` (default 1), `per_page` (default 10).
+
+**Summary response (200):**
+```json
+{
+  "has_data": true,
+  "scanning": false,
+  "score": 38,
+  "engines_citing": 2,
+  "engines_total": 5,
+  "share_of_voice": 12,
+  "prompts_tracked": 18,
+  "engines": [
+    { "key": "chatgpt", "label": "ChatGPT", "state": "cited" },
+    { "key": "perplexity", "label": "Perplexity", "state": "mentioned" },
+    { "key": "gemini", "label": "Gemini", "state": "not_cited" }
+  ],
+  "last_scan": "2026-07-01 06:00:00",
+  "manual_scans_used": 0,
+  "manual_scans_limit": 2,
+  "can_scan": true
+}
+```
+
+Per-engine `state` is one of `cited` (your page was cited), `mentioned` (brand named but not cited), `not_cited` (the engine answered but did not cite you), or `no_data`. If `has_data` is `false`, no scan has run yet (or one is `scanning`), trigger one with the scan endpoint below. The `competitors` view returns `you` (your citation count), `rows` (each stored competitor with citation counts), and `other_cited` (most-cited domains that are neither you nor a competitor). The `cited_pages` view returns your own URLs that engines cited, with per-URL citation counts and which engines cited them.
+
+#### Trigger a scan
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": 42}' \
+  https://distribb.io/api/v1/ai-visibility/scan | jq .
+```
+
+Queues an on-demand scan and returns **202** `{"status":"queued", ...}`. Poll `GET /ai-visibility?view=summary` until it completes. The **per-project daily manual-scan cap is SHARED** with the dashboard "Scan now" button and the Distribb Agent, so heavy API scanning draws from the same budget. When the cap is hit you get **429** `{"status":"rate_limited", "manual_scans_used": N, "manual_scans_limit": M}` (resets at midnight UTC). `project_id` may be sent in the body or as a query param.
+
+#### Add or remove a tracked prompt
+
+```bash
+# Add a prompt to track
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "prompt": "best crm for small business"}' \
+  https://distribb.io/api/v1/ai-visibility/prompts | jq .
+
+# Remove a tracked prompt (soft-delete; past results are kept)
+curl -s -X DELETE -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "prompt": "best crm for small business"}' \
+  https://distribb.io/api/v1/ai-visibility/prompts | jq .
+```
+
+Body: `{"project_id": <id>, "prompt": "..."}`. Added prompts are picked up on the next scan. `POST` returns `{"status":"added"|"duplicate"|"limit"|"invalid"}` (a `limit` status means the tracked-prompt cap is reached, remove one first). `DELETE` returns `{"status":"removed"}` or `404` `{"status":"not_found"}`.
+
 ### Content Optimizations (Suggestions)
 
 Distribb continuously finds pages where a rewrite could win more traffic, mostly from the user's **Google Search Console** data (queries with impressions but low CTR, pages stuck at the bottom of page 1). Each one is a **suggestion**: Distribb scrapes the live page, has its AI draft an improved version, and stages a before/after **diff** for review. You (the agent) list them, inspect the diff, approve (which triggers the rewrite), then publish the approved rewrite straight to the user's CMS. This is the highest-leverage ongoing SEO loop, it acts on pages that *already* rank, so wins come faster than net-new articles.
@@ -872,6 +1074,10 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 # List suggestions (optionally filter by status: pending, ready, published, ...)
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/suggestions?project_id=42&status=pending" | jq .
+
+# Filter by opportunity type instead (cannibalisation, content decay, audit findings, ...)
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/suggestions?project_id=42&type=cannibalisation" | jq .
 
 # Inspect a single suggestion, then its before/after rewrite
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
@@ -931,8 +1137,10 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 - If `gsc_connected` is `false` and the list is empty, follow the `instructions_for_agent` string: tell the user to connect GSC at https://distribb.io/integrations, then `POST /suggestions/run`.
 
 **Parameters:**
-- `GET /suggestions`, `project_id` (required), `status` (optional), `limit` (default 100, max 500).
+- `GET /suggestions`, `project_id` (required), `status` (optional), `type` (optional), `limit` (default 100, max 500).
 - `POST /suggestions/run`, `project_id` (required).
+
+**Filter by opportunity type (`?type=`):** narrow the list to a single opportunity type (`opportunity_type`) so cannibalisation, content-decay, and audit findings are consumable as data. Common values: `cannibalisation`, `declining_page`, `striking_distance`, `ctr_underperform` (and others as the engine adds them). It filters the returned `suggestions` list only, the per-status `counts` still reflect the whole project. Combine with `status` to, for example, list `pending` `cannibalisation` items.
 - `POST /suggestions/:id/reject`, optional `reason`. `POST /suggestions/:id/regenerate`, optional `feedback`.
 
 ### Microworkers Campaign Management
@@ -1253,8 +1461,8 @@ This skill ships a set of slash commands in its `commands/` folder so the user c
 | `/news-writer` | `<site-url-or-niche>` | Newsjack: find fresh news, write grounded drafts, queue in Distribb |
 | `/statistics-page-writer` | `<industry-or-topic>` | Deep-research and publish a journalist-ready statistics page |
 | `/instagram-carousel` | `<article-id-or-keyword>` | Turn one article/keyword into a viral, save-driven Instagram carousel (cover hook, comment-for-link play), publish it, and close the loop with a companion article |
-| `/youtube-motion-video` | `<topic>` | Faceless motion-collage explainer, YouTube-SEO packaged, published to the connected channel (drives `super-video-maker`) |
 | `/review-video` | `<competitor>` | Compile REAL, verified competitor reviews into a "<competitor> reviews" video, position the connected project as the alternative, append its own testimonials, publish to YouTube + companion article (drives `super-video-maker`) |
+| `/gbp` | (optional: `reviews` \| `reply` \| `post` \| `status`) | Google Business Profile manager: review triage, public replies, posts, analytics |
 
 **Enabling the commands.** Depending on how the skill was installed, the commands may already be live. If a command is not recognized, register them once by copying this skill's command files into the project's command folder:
 
@@ -1311,13 +1519,86 @@ Do NOT hammer the API in a loop. Space out requests by at least 2 seconds when m
 
 ---
 
+## Competitor Reviews Video (`/review-video`)
+
+Turn the keyword **"<competitor> reviews"** into a fast, faceless voiceover montage of
+**real, verified** competitor reviews that names the recurring complaints and positions
+**the connected project's own business** as the alternative that fixes them, then hands off to
+the project's own customer testimonials and ends on the project's CTA. It ranks for a
+high-intent, mid-decision keyword and converts by pairing the competitor's own customers' words
+with a truthful "here is the tool that closes exactly these gaps."
+
+This is a hybrid workflow. **Distribb is the SEO brain** (the keyword, the project's business
+context, YouTube publishing, and a companion article + backlinks) and the **`super-video-maker`**
+skill is the production engine (review research + verification → real review screenshots →
+ElevenLabs voiceover → captions → a three-part edit that appends the project's own testimonial
+reel). Install it once, then follow its `REVIEW_VIDEO_PLAYBOOK.md`:
+
+```bash
+npx skills add Bomx/super-video-maker-skill
+```
+
+### Guardrail (read first)
+Only put **real, verified, attributable** reviews on screen. Never invent, embellish,
+paraphrase-as-a-quote, or doctor a review. Cherry-picking the honest negatives is legitimate
+comparative marketing; fabricating or misrepresenting a competitor is false advertising and
+defamation. Be honest about the competitor's overall rating and win on the *pattern* in the
+complaints. If the competitor has no genuine critical-review volume, tell the user and stop.
+**The alternative is always the connected project's own business — pulled from
+`/business-context`, never a hardcoded company.**
+
+### Workflow
+1. **Who is the alternative.** Call `/business-context` for the project's name, value props,
+   audience, language, and competitors. THIS project's business is what you position at the end.
+   If the user did not name a competitor, offer the ones in `competitors`.
+   ```bash
+   curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+     "https://distribb.io/api/v1/business-context?project_id=42" | jq .
+   ```
+2. **Pick the keyword.** Search "<competitor> reviews" and "<competitor> alternative"; the
+   primary keyword becomes the title spine and the companion article's keyword. (On Free
+   Agentic this returns HTTP 402 `byo_keys_required` until SEO keys are saved — surface it
+   verbatim and use the concept instead.)
+   ```bash
+   curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
+     -d '{"project_id":42,"keyword":"<competitor> reviews"}' \
+     https://distribb.io/api/v1/keywords/search | jq .
+   ```
+3. **Research + verify + produce** with super-video-maker's `REVIEW_VIDEO_PLAYBOOK.md`: fan out
+   across every review surface (Trustpilot, G2/Capterra, app stores, Reddit/forums, review blogs,
+   YouTube, social), extract verbatim reviews with exact source URLs, drive a real browser where a
+   site 403s automated fetches (Trustpilot), **adversarially verify every critical quote** (default
+   to reject if you cannot corroborate it verbatim), then build the faceless voiceover montage. Map
+   each recurring gap to a TRUE strength of THIS project's business (real backlinks, internal
+   linking, GSC-grounded content, etc.). Append the project's own testimonial reel if the user has
+   one; end on the project's site/CTA. Show the user the verified reviews + script before any paid
+   generation.
+4. **Publish + close the loop.** Confirm the project's YouTube channel is connected
+   (`/integrations`; if not, send the user to https://distribb.io/integrations), then publish the
+   MP4 with a keyword-led title, a description that restates the keyword and states every review
+   shown is real and sourced, chapters, and tags. Then publish a companion article targeting
+   "<competitor> reviews" / "<competitor> alternative" that embeds the video, weaving in
+   `/internal-links` and (if in the exchange) `/backlink-targets`.
+
+### Rules
+- Real, verified, attributable reviews only; keep the on-screen source visible.
+- The alternative is the connected project's business, from `/business-context` — never a
+  hardcoded company. Only push that project.
+- Real review screenshots, never generated ones. Confirm the YouTube connection and show the
+  verified reviews + script before any paid generation.
+
+---
+
 ## Rate Limits
 
 | Endpoint | Limit |
 |----------|-------|
-| `GET /projects`, `GET /projects/:id`, `GET /articles`, `GET /articles/:id`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status` | 30 req/min |
+| `GET /projects`, `GET /projects/:id`, `GET /articles`, `GET /articles/:id`, `GET /business-context`, `GET /integrations`, `GET /backlinks/status`, `GET /backlinks` | 30 req/min |
 | `POST /keywords/search`, `POST /keywords/research` | 5 req/min |
-| `GET /internal-links`, `GET /backlink-targets`, `GET /search-console` | 10 req/min |
+| `GET /internal-links`, `GET /backlink-targets`, `GET /search-console` (and its `GET /rankings`, `GET /analytics` aliases) | 10 req/min |
+| `GET /ai-visibility` | 30 req/min |
+| `POST\|DELETE /ai-visibility/prompts` | 20 req/min |
+| `POST /ai-visibility/scan` | 6 req/min |
 | `GET /suggestions`, `GET /suggestions/:id`, `GET /suggestions/:id/diff` | 30 req/min |
 | `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id`, `PUT /projects/:id`, `POST /projects`, `POST /projects/:id/wordpress` | 10 req/min |
 | `POST /suggestions/:id/approve`, `POST /suggestions/:id/reject`, `POST /suggestions/:id/regenerate` | 10 req/min |
