@@ -34,6 +34,8 @@ Usage:
   python distribb_cli.py gbp:reviews --project-id 42 --unreplied
   python distribb_cli.py gbp:reply --project-id 42 --review-id "accounts/.../reviews/AbFvOq..." --message "Thanks Sarah!"
   python distribb_cli.py gbp:posts:create --project-id 42 --text "Spring checks now booking" --link https://acme.com/offer
+  python distribb_cli.py link-outreach:replies --project-id 42
+  python distribb_cli.py link-outreach:reply --prospect-id 1159 --message "Thanks Bill. What does the #6-10 slot run per year?"   # ASK THE USER FIRST — sends a real email
   python distribb_cli.py suggestions:list --project-id 42 --status pending
   python distribb_cli.py suggestions:run --project-id 42
   python distribb_cli.py suggestions:get --suggestion-id 123
@@ -240,6 +242,19 @@ def cmd_backlinks_targets(args):
 def cmd_backlinks_status(args):
     params = {'project_id': args.project_id}
     print(json.dumps(api('GET', '/api/v1/backlinks/status', params=params), indent=2))
+
+
+def cmd_link_outreach_replies(args):
+    params = {}
+    if getattr(args, 'project_id', None): params['project_id'] = args.project_id
+    if getattr(args, 'status', None): params['status'] = args.status
+    if getattr(args, 'limit', None): params['limit'] = args.limit
+    print(json.dumps(api('GET', '/api/v1/link-outreach/prospects', params=params), indent=2))
+
+
+def cmd_link_outreach_reply(args):
+    body = {'body': args.message}
+    print(json.dumps(api('POST', f'/api/v1/link-outreach/prospects/{args.prospect_id}/reply', json_data=body), indent=2))
 
 
 def cmd_context_get(args):
@@ -517,6 +532,17 @@ def main():
     p = sub.add_parser('backlinks:status', help='Get backlink credits and status')
     p.add_argument('--project-id', type=int, required=True)
     p.set_defaults(func=cmd_backlinks_status)
+
+    p = sub.add_parser('link-outreach:replies', help='List Link Outreach prospects who replied (prospect_id, their message, asking price)')
+    p.add_argument('--project-id', type=int, help='Optional: only this project')
+    p.add_argument('--status', type=str, help="Comma statuses (default 'replied,offer'; use 'all' for every status)")
+    p.add_argument('--limit', type=int, help='Max rows (default 50)')
+    p.set_defaults(func=cmd_link_outreach_replies)
+
+    p = sub.add_parser('link-outreach:reply', help='Reply IN-THREAD to a Link Outreach prospect from our inbox (Accelerator only; confirm wording with the user first)')
+    p.add_argument('--prospect-id', type=int, required=True, help='prospect_id from link-outreach:replies')
+    p.add_argument('--message', type=str, required=True, help='The exact reply text the user approved')
+    p.set_defaults(func=cmd_link_outreach_reply)
 
     p = sub.add_parser('context:get', help='Get business context for a project')
     p.add_argument('--project-id', type=int, required=True)

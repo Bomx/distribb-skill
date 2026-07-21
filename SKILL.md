@@ -52,6 +52,7 @@ This skill ships ready-to-use slash commands so the user can drive the whole wor
 | `/instagram-carousel <article-id-or-keyword>` | Turn one article/keyword into a viral, save-driven Instagram carousel (cover hook, one idea per slide, comment-for-link play), publish it, and close the loop with a companion article |
 | `/review-video <competitor>` | Compile REAL, verified reviews of a competitor into a faceless "<competitor> reviews" video, position the connected project's own business as the alternative, append the project's own testimonials, and publish to YouTube + a companion article |
 | `/gbp` | Google Business Profile manager: live review triage, draft + post public review replies, queue Google Business posts, post analytics |
+| `/link-outreach` | Work your backlink outreach replies: see which listicle authors replied (and their asking price), draft and send in-thread replies from Distribb's inbox (Accelerator) |
 
 If these commands are not yet available when the user types them, run `/distribb-setup` (or copy this skill's `commands/*.md` into the project's `.claude/commands/` folder) to register them. See the **Slash Commands** section below.
 
@@ -124,6 +125,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Integrations** | See connected CMS platforms | `GET /integrations` |
 | **Google Search Console** | Pull the user's real GSC performance, top queries, top pages, clicks, impressions, CTR, position (if they've connected GSC). Aliased as `GET /rankings` and `GET /analytics` (search performance, NOT web-session analytics) | `GET /search-console` |
 | **Google Business Profile** | Live Google reviews (reviewer, rating, text, reply status), post/delete the business's PUBLIC review replies, queue Google Business posts, post-level analytics (if they've connected Google Business) | `GET /gbp/status`, `GET /gbp/reviews`, `POST\|DELETE /gbp/reviews/reply`, `POST /gbp/posts`, `GET /gbp/analytics` |
+| **Link Outreach** | Listicle authors who replied to the user's managed backlink outreach (their message + any asking price), and sending an in-thread reply from Distribb's warmed inbox on the user's behalf (Accelerator only) | `GET /link-outreach/prospects`, `POST /link-outreach/prospects/:id/reply` |
 | **AI Visibility (AEO)** | Distribb's already-tracked AI-search visibility: visibility score, share-of-voice, per-engine citation status (ChatGPT, Perplexity, Gemini, AI Overviews, AI Mode), tracked prompts, cited pages, on-demand scans | `GET /ai-visibility`, `POST /ai-visibility/scan`, `POST\|DELETE /ai-visibility/prompts` |
 | **Content Optimizations** | Find pages worth rewriting (mostly from GSC), review the AI's before/after diff, then approve and publish the rewrite to the CMS. Filter by opportunity with `?type=` (cannibalisation, declining_page, striking_distance, ctr_underperform, ...) | `GET /suggestions`, `POST /suggestions/run`, `POST /suggestions/:id/approve\|publish\|regenerate\|reject` |
 | **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
@@ -985,6 +987,20 @@ Covers Google Business posts published through Distribb (post counts + per-post 
 
 **Good `/gbp` workflow:** `GET /gbp/status` -> if `unreplied_count > 0`, pull `has_reply=false` reviews -> draft replies in the brand voice (get approval) -> post them -> finish with a queued Google Business post pointing at the latest published article.
 
+### Link Outreach (listicle backlink replies)
+
+Link Outreach is Distribb's managed service that emails "best of" / "top tools" listicle authors, from Distribb's warmed inboxes, asking to add the user's business to lists that already rank their competitors. Discovery, sending, and follow-ups are automatic. This surface is for the **replies**: seeing which authors answered (and what they want) and responding to them **in-thread**, without the user leaving Distribb.
+
+- `GET /link-outreach/prospects?project_id=...&status=replied,offer&limit=50` — the authors who replied. Each row: `prospect_id`, `host`, `author_name`, `author_email`, `status` (`replied` or `offer`), the author's `reply` (their actual message), and `offer_amount` / `offer_currency` when they named an asking price. Omit `project_id` to span every project the key owns; `status=all` returns the whole pipeline. Read-only, 30 req/min.
+- `POST /link-outreach/prospects/:id/reply` with `{ "body": "<the reply>" }` — sends the user's reply **in-thread from the Distribb inbox that ran the original outreach**, so it stays connected and lands in the author's inbox. **Accelerator only** (other plans reply from their own inbox). 10 req/min.
+
+**Agent contract (this SENDS a real email on the user's behalf):**
+- Always `GET` the replies first and summarize them. Quote the `reply` text and any `offer_amount` exactly. Never invent a price, terms, or intent the author did not state.
+- Most listicle placements are paid; that is the industry norm. Whether to accept, negotiate, or pass is ALWAYS the user's call, never yours. Distribb never agrees to or pays for a placement on their behalf.
+- Draft the reply, show the user the exact wording, and get a clear go-ahead BEFORE calling `POST .../reply`. It is not reversible. Never send a reply the user has not seen and approved.
+
+**Good `/link-outreach` workflow:** `GET /link-outreach/prospects` -> summarize who replied + any asking price -> draft a short reply in the user's voice -> get explicit approval of the wording -> `POST /link-outreach/prospects/:id/reply`.
+
 ### AI Visibility (AEO)
 
 Read Distribb's **already-tracked** AI-search visibility for a project: how often AI engines cite the site, the share-of-voice vs competitors, per-engine citation status, the tracked prompts, and the exact pages engines cited. This is the API-key mirror of the dashboard AI-visibility pane (same `ai_citation_tracker` backend), so an agent can pull it directly instead of re-deriving everything with live `WebSearch`. The five tracked engines are ChatGPT, Perplexity, Gemini, Google AI Overviews, and Google AI Mode.
@@ -1463,6 +1479,7 @@ This skill ships a set of slash commands in its `commands/` folder so the user c
 | `/instagram-carousel` | `<article-id-or-keyword>` | Turn one article/keyword into a viral, save-driven Instagram carousel (cover hook, comment-for-link play), publish it, and close the loop with a companion article |
 | `/review-video` | `<competitor>` | Compile REAL, verified competitor reviews into a "<competitor> reviews" video, position the connected project as the alternative, append its own testimonials, publish to YouTube + companion article (drives `super-video-maker`) |
 | `/gbp` | (optional: `reviews` \| `reply` \| `post` \| `status`) | Google Business Profile manager: review triage, public replies, posts, analytics |
+| `/link-outreach` | (optional: `replies` \| `reply`) | Work backlink outreach replies: review who replied + asking price, draft + send in-thread replies from Distribb's inbox (Accelerator) |
 
 **Enabling the commands.** Depending on how the skill was installed, the commands may already be live. If a command is not recognized, register them once by copying this skill's command files into the project's command folder:
 
