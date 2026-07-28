@@ -1,6 +1,6 @@
 ---
 name: distribb
-description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, internal linking, social media repurposing, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, or manage Microworkers campaigns.
+description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, link building outreach playbooks, internal linking, social media repurposing, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, run link building or backlink outreach campaigns, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, or manage Microworkers campaigns.
 homepage: https://distribb.io
 metadata: {"clawdbot":{"emoji":"🔍","requires":{"env":["DISTRIBB_API_KEY"]}}}
 ---
@@ -126,7 +126,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Google Search Console** | Pull the user's real GSC performance, top queries, top pages, clicks, impressions, CTR, position (if they've connected GSC). Aliased as `GET /rankings` and `GET /analytics` (search performance, NOT web-session analytics) | `GET /search-console` |
 | **Google Business Profile** | Live Google reviews (reviewer, rating, text, reply status), post/delete the business's PUBLIC review replies, queue Google Business posts, post-level analytics (if they've connected Google Business) | `GET /gbp/status`, `GET /gbp/reviews`, `POST\|DELETE /gbp/reviews/reply`, `POST /gbp/posts`, `GET /gbp/analytics` |
 | **Link Outreach** | Listicle authors who replied to the user's managed backlink outreach (their message + any asking price), and sending an in-thread reply from Distribb's warmed inbox on the user's behalf (Accelerator only) | `GET /link-outreach/prospects`, `POST /link-outreach/prospects/:id/reply` |
-| **AI Visibility (AEO)** | Distribb's already-tracked AI-search visibility: visibility score, share-of-voice, per-engine citation status (ChatGPT, Perplexity, Gemini, AI Overviews, AI Mode), tracked prompts, cited pages, on-demand scans | `GET /ai-visibility`, `POST /ai-visibility/scan`, `POST\|DELETE /ai-visibility/prompts` |
+| **AI Visibility (AEO)** | Distribb's already-tracked AI-search visibility: visibility score, share-of-voice, per-engine citation status (ChatGPT, Perplexity, Gemini, AI Overviews, AI Mode), cited pages, on-demand scans. Track your **own buyer-query prompts** (up to 25/project, scanned first) and scan AI Overview / AI Mode / ChatGPT / Gemini from the client's **own city** via `primary_location` | `GET /ai-visibility`, `POST /ai-visibility/scan`, `POST\|DELETE /ai-visibility/prompts` |
 | **Content Optimizations** | Find pages worth rewriting (mostly from GSC), review the AI's before/after diff, then approve and publish the rewrite to the CMS. Filter by opportunity with `?type=` (cannibalisation, declining_page, striking_distance, ctr_underperform, ...) | `GET /suggestions`, `POST /suggestions/run`, `POST /suggestions/:id/approve\|publish\|regenerate\|reject` |
 | **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
 | **Microworkers Campaign Management** | Create/register campaigns, list submissions, and rate worker slots for Reddit, Quora, YouTube, or generic proof tasks | `GET/POST /microworkers/campaigns`, `GET /microworkers/campaigns/:id/slots`, `POST /microworkers/slots/:slot_id/rate` |
@@ -221,7 +221,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/backlink-targets?project_id=42&keyword=crm+software" | jq .
 
 # 6. WRITE THE ARTICLE using your AI, weaving in internal links + backlink targets
-# Output valid HTML. Follow the SEO writing guidelines below.
+# Output an article HTML FRAGMENT that follows the mandatory contract below.
 # You MUST include 1-2 URLs from the backlink-targets response as natural references.
 
 # 7. SUBMIT: Save to Distribb's content calendar
@@ -231,7 +231,7 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
     "project_id": 42,
     "keyword": "best crm for small business",
     "title": "Best CRM for Small Business: 2026 Guide",
-    "content": "<h2>Introduction</h2><p>Your full HTML article here...</p>",
+    "content": "<nav class=\"table-of-contents\" aria-label=\"Table of contents\"><h3>Table of Contents</h3><ul><li><a href=\"#introduction\">Introduction</a></li></ul></nav><h2 id=\"introduction\">Introduction</h2><p>Your full HTML article here...</p>",
     "meta_description": "Compare the best CRM tools for small business in 2026.",
     "scheduled_date": "2026-04-01T09:00:00Z",
     "status": "Planned"
@@ -242,6 +242,22 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123/publish | jq .
 ```
+
+---
+
+## Mandatory Article HTML Contract and Safe Edit Protocol
+
+These rules apply to every article-producing command, helper, and sub-skill. They are a publishing contract, not optional style advice.
+
+- `content` is inserted inside Distribb's existing `.blog-content` element. Submit an HTML **fragment**, never a complete document.
+- Never include `<!DOCTYPE>`, `<html>`, `<head>`, `<body>`, a page `<h1>`, document metadata/schema, page-level `<style>`, or executable `<script>`. Distribb owns the document shell, H1, metadata, schema, author block, sidebar, and CSS.
+- Give every H2 a unique, stable, URL-safe `id`. When there are two or more H2s, include exactly one `<nav class="table-of-contents">` whose anchors resolve to the current IDs.
+- Preserve existing wrappers, classes, IDs, `data-*` attributes, tables, links, and embeds during edits.
+- Wrap every YouTube iframe in `<div class="youtube-embed">`; include a descriptive `title`, `loading="lazy"`, `allowfullscreen`, and no fixed dimensions.
+
+For every edit: GET and save the article as a rollback copy; patch its fetched `Content`; diff and validate the fragment/IDs/TOC/embeds; PUT only changed fields; GET and verify readback. Published articles must keep their keyword/slug, status, and schedule. Distribb-hosted posts are live from the database; when an external-CMS PUT returns `sync_required: true`, call `POST /api/v1/articles/:id/sync` (the CLI does this automatically unless `--no-sync`). Never republish or create a replacement for an existing live article.
+
+Before publishing, and again on the live URL, inspect desktop and mobile widths. Confirm the sidebar/TOC matches the real headings and every video fills the article column at 16:9. A non-2xx response or failed readback is failure.
 
 ---
 
@@ -656,7 +672,7 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
     "project_id": 42,
     "keyword": "best crm tools for startups",
     "title": "10 Best CRM Tools for Startups in 2026",
-    "content": "<h2>Introduction</h2><p>Finding the right CRM...</p>",
+    "content": "<nav class=\"table-of-contents\" aria-label=\"Table of contents\"><h3>Table of Contents</h3><ul><li><a href=\"#introduction\">Introduction</a></li></ul></nav><h2 id=\"introduction\">Introduction</h2><p>Finding the right CRM...</p>",
     "meta_description": "Compare the 10 best CRM tools for startups.",
     "scheduled_date": "2026-04-01T09:00:00Z",
     "status": "Planned"
@@ -714,7 +730,7 @@ Setting a `scheduled_date` schedules the article: submit it as a `Draft` with a 
 
 ### Update Article
 
-Use this to revise an article after submission, for example to add backlink targets if the creation response included a `backlinks_warning`.
+Use this to revise an article after submission, including a Published article. Follow the mandatory fetch-patch-verify protocol above: GET and preserve the current article, patch its fetched `Content`, and send only changed fields.
 
 ```bash
 curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
@@ -725,7 +741,7 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123 | jq .
 ```
 
-**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`, `category`, `published_at`. Send only the fields you want to change. Changing `keyword` also regenerates the article's slug. Scheduling is symmetric: sending a `scheduled_date` on a `Draft` promotes it to `Planned` (so it actually enters the publish pipeline), and sending `"scheduled_date": null` **unschedules** it, dropping a `Planned` article back to `Draft`. Pass an explicit `status` if you want to override either default.
+**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`, `category`, `published_at`. Send only the fields you want to change. For Published articles, `keyword`, `status`, and `scheduled_date` are rejected so the existing URL and publication state cannot drift.
 
 - `category`: the CMS category NAME to assign (e.g. `"Accessibility Guides"`). It must ALREADY exist on the destination CMS (WordPress or GoHighLevel); Distribb resolves the name to that platform's category at publish time and cannot create new categories. Send `""` to clear it. Detection ships for WordPress and GoHighLevel; other CMSs ignore it for now.
 - `published_at`: a PAST ISO 8601 timestamp used to BACKDATE the post on the CMS (e.g. `"2024-02-05T09:00:00Z"`). This changes only the date the CMS records, NOT when Distribb publishes and NOT the article's position on the content calendar (that is `scheduled_date`). Send `""`/`null` to clear it. Backdating is applied on GoHighLevel today.
@@ -740,7 +756,7 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 }
 ```
 
-If content is updated and the project participates in the backlink network, Distribb re-scans for network backlinks and updates credits. You cannot update published articles.
+If content is updated and the project participates in the backlink network, Distribb re-scans for network backlinks and updates credits. GET and validate readback after the PUT. If the response says `sync_required: true`, call `POST /api/v1/articles/:id/sync`; this overwrites the existing CMS post and never creates a replacement. Distribb-hosted posts return `sync_required: false` and are live immediately.
 
 ### Delete Article
 
@@ -791,6 +807,8 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 ```
 
 Pushes the article to the user's connected CMS (WordPress, Webflow, Shopify, etc.). A manual publish like this **always goes live**, even if the project is set to `Save as Drafts` / `Send as Drafts`, that preference only controls AUTOMATIC scheduled publishing, not a deliberate "publish now". Returns `200` with `{"status":"published","url":...}` once the CMS confirms a live URL; `202` with `{"status":"pending"}` if the CMS hasn't confirmed yet (it will retry, the article is NOT lost).
+
+Use this only for Draft/Planned articles without a live post. For a Published article, PUT and then use the update-only `/sync` endpoint when requested; never publish it again.
 
 **The project must have a website/CMS connected.** If none is, this returns **`400` with `{"error":"no_cms_integration"}`** and a `connect_url`. Surface that to the user verbatim, there is nowhere to publish until they connect their site at https://distribb.io/integrations . This is the single most common reason a scheduled article never publishes: a Google Search Console (analytics) connection is NOT a publishing destination. Before you tell a user an article will publish, confirm a CMS is connected with `GET /api/v1/integrations`.
 
@@ -1031,6 +1049,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "engines_total": 5,
   "share_of_voice": 12,
   "prompts_tracked": 18,
+  "scan_location": "Sydney,New South Wales,Australia",
   "engines": [
     { "key": "chatgpt", "label": "ChatGPT", "state": "cited" },
     { "key": "perplexity", "label": "Perplexity", "state": "mentioned" },
@@ -1073,6 +1092,43 @@ curl -s -X DELETE -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 ```
 
 Body: `{"project_id": <id>, "prompt": "..."}`. Added prompts are picked up on the next scan. `POST` returns `{"status":"added"|"duplicate"|"limit"|"invalid"}` (a `limit` status means the tracked-prompt cap is reached, remove one first). `DELETE` returns `{"status":"removed"}` or `404` `{"status":"not_found"}`.
+
+**Bring your own prompts (the ones that matter).** Every project seeds with about 10 auto-generated prompts that skew brand-y ("Is [brand] a good tool?"). Those are just a starting point. Add the real buyer queries your clients care about ("best pickleball paddle australia", "best crm for real estate") with the add endpoint, they are your highest-signal prompts and are scanned first. A project tracks up to **25** prompts total (your own prompts take priority over the auto ones); remove the auto prompts you do not want so your buyer queries fill the set. To lift the ceiling above 25 across the whole workspace, ask Distribb to raise `AI_CITATION_MAX_TRACKED` (it is cost-bounded: each prompt is scanned across 5 engines per scan).
+
+#### Set the scan location (local businesses)
+
+For local businesses, proximity decides the AI answer, so the scan should run from the client's own market, not a default country. Distribb scans **Google AI Overview, Google AI Mode, ChatGPT, and Gemini from the project's `primary_location`** (a `"City, Region, Country"` string) when it is set, and falls back to the country otherwise. **Perplexity is always country-level** (its API accepts only a country code). The location the scan actually used is echoed back as `scan_location` on the summary response, so you can prove localization in a report.
+
+`primary_location` is captured at onboarding, and you can set or override it per client via the projects API (or the CLI):
+
+```bash
+# Set the client's market so AI Visibility scans from their city
+curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"primary_location": "Sydney, New South Wales, Australia"}' \
+  https://distribb.io/api/v1/projects/42 | jq .
+```
+
+If DataForSEO does not recognize the city, the scan quietly falls back to the country for that run (no error), so a rough or misspelled market never breaks a scan. Changing the location shifts where future scans measure from, so trend lines compare like-for-like only after the first scan at the new location.
+
+#### CLI
+
+The same surface is wrapped in `distribb_cli.py` so you do not have to hand-write curl:
+
+```bash
+python distribb_cli.py ai-visibility:get --project-id 42 --view summary
+python distribb_cli.py ai-visibility:get --project-id 42 --view prompts --page 1 --per-page 25
+python distribb_cli.py ai-visibility:get --project-id 42 --view competitors
+python distribb_cli.py ai-visibility:get --project-id 42 --view cited_pages
+python distribb_cli.py ai-visibility:scan --project-id 42
+# Bulk-add a client's buyer queries in one call (repeat --prompt)
+python distribb_cli.py ai-visibility:prompts:add --project-id 42 \
+  --prompt "best pickleball paddle australia" \
+  --prompt "best pickleball paddle for beginners"
+python distribb_cli.py ai-visibility:prompts:remove --project-id 42 --prompt "Is Acme a good tool?"
+# Localize the scan to the client's market
+python distribb_cli.py projects:update --project-id 42 --primary-location "Sydney, New South Wales, Australia"
+```
 
 ### Content Optimizations (Suggestions)
 
@@ -1256,7 +1312,7 @@ Write the draft, cut these AI tells, then ask "what still reads like AI?" and fi
 - Primary keyword in the first ~100 words once (never bolded), then naturally where it fits. Don't repeat the exact phrase in every heading or stuff a stale year everywhere.
 - Write quotable, self-contained claims AI engines lift as answers: "X reduces Y by Z%, according to [source]" beats "X has many benefits."
 - Cite 2-3 real authority sources (primary sources, official docs, .gov/.edu, Wikipedia) -- never a competitor's blog ranking for the same keyword.
-- Use H2 for sections, H3 for subsections. Output valid HTML, not markdown.
+- Use H2 for sections, H3 for subsections. Output a fragment that follows the mandatory Article HTML Contract: stable unique H2 IDs, one matching TOC, and wrapped responsive videos. Never output markdown or a full HTML document.
 
 ### Internal Linking
 - Use the exact URLs from the `/internal-links` response.
@@ -1316,7 +1372,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 # - Include 1-2 backlink target URLs from step 5 as natural references (mandatory)
 # - Follow the SEO writing guidelines above
 # - Never link to hubspot.com or salesforce.com (competitors)
-# - Output valid HTML
+# - Output a contract-compliant HTML fragment with stable H2 IDs and one matching TOC
 
 # Step 7: Submit to Distribb
 curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
@@ -1457,6 +1513,42 @@ For each target page, capture:
 - `GET /business-context?project_id=...` if running this for a non-Distribb project, so competitor exclusions are respected.
 - Skip any Distribb write/publish endpoints, this workflow does not create articles.
 
+**Where this hands off.** This workflow produces the target list. To actually earn the placement, run `/link-building` and read `references/link-building-playbooks.md`, which turns each target into a give-first campaign with an asset attached.
+
+---
+
+## Workflow: Link Building Playbooks (`/link-building`)
+
+Use this when the user asks you to build links, run outreach, get backlinks outside the exchange, or any variant of "how do I get more sites linking to me".
+
+**The full methodology lives in [`references/link-building-playbooks.md`](./references/link-building-playbooks.md). Read it before running any of these.** This section is the map.
+
+Six playbooks, all give-first: you build something the prospect wants and hand it over, and the link is the consequence rather than the ask.
+
+| # | Playbook | What it does | Run it when |
+|---|---|---|---|
+| 1 | **Invoice Method** | Mines the user's own billing history for vendors who want testimonials and list customers with links | They need links fast, or have none yet. Fastest to a live link, no asset to build |
+| 2 | **Source Sniping** | Prospects by which domains AI engines actually cite, using `ai-visibility --view competitors` -> `other_cited` | They ask who to pitch, or get no AI mentions. Reorders every other campaign |
+| 3 | **Tombstone Method** | Broken link building aimed at dead companies rather than dead URLs, to take listicle slots | Competitors are on every "best of" list and they are not |
+| 4 | **Fact Decay Audit** | Audits a target page for claims that stopped being true, delivers a sourced correction sheet | They have outreach capacity but nothing worth sending |
+| 5 | **Stale Screenshot** | Re-shoots a publisher's outdated product screenshots with browser control | They want links from pages already ranking for their keywords |
+| 6 | **Missing Visual** | Builds a diagram from the prospect's own prose, for pages carrying image debt | They have content but nobody links to it |
+
+### Three rules that override everything else in this section
+
+1. **You do not send the email. The user does.** There is no Distribb endpoint for arbitrary cold outreach. `/link-outreach` is a **different, managed product**: Distribb's own warmed inboxes, Accelerator-gated in-thread replies, and only for prospects Distribb generated. These six playbooks end at a finished draft with the asset attached, saved to a file. Never tell the user you sent something you did not send.
+
+2. **Never invent a fact about a prospect's page.** Four of the six work by telling a publisher something about their own content: a decayed fact, an aged screenshot, a dead company, a missing diagram. The publisher checks. If you cannot verify against a primary source, drop the item rather than hedging it.
+
+3. **These are not volume plays.** Ten to thirty sends with a real asset beats five hundred without, and the mechanic stops working at scale precisely because what converts is that it is obviously bespoke. If the user wants volume, point them at `/link-outreach` and the backlink exchange, which are built for it.
+
+### Where it plugs into the rest of the skill
+
+- `context:get` for brand voice and the competitor list, which drives Tombstone and Source Sniping directly.
+- `ai-visibility:prompts:add` + `ai-visibility:scan` + `ai-visibility:get --view competitors` for Source Sniping. `other_cited` is the prospect list.
+- `ai-visibility:get --view cited_pages` to decide what the new links should point at, since engines already treat those URLs as quotable.
+- `articles:create` + `articles:publish` if the user has no linkable asset yet. If they have nothing at all, run `/statistics-page-writer` first: a statistics page is the best single target for every playbook here.
+
 ---
 
 ## Slash Commands
@@ -1480,6 +1572,7 @@ This skill ships a set of slash commands in its `commands/` folder so the user c
 | `/review-video` | `<competitor>` | Compile REAL, verified competitor reviews into a "<competitor> reviews" video, position the connected project as the alternative, append its own testimonials, publish to YouTube + companion article (drives `super-video-maker`) |
 | `/gbp` | (optional: `reviews` \| `reply` \| `post` \| `status`) | Google Business Profile manager: review triage, public replies, posts, analytics |
 | `/link-outreach` | (optional: `replies` \| `reply`) | Work backlink outreach replies: review who replied + asking price, draft + send in-thread replies from Distribb's inbox (Accelerator) |
+| `/link-building` | (optional: `invoice` \| `source-sniping` \| `tombstone` \| `fact-decay` \| `screenshots` \| `visuals`) | Run one of six give-first outreach playbooks end to end, from prospecting to a ready-to-send draft with the asset attached (`references/link-building-playbooks.md`) |
 
 **Enabling the commands.** Depending on how the skill was installed, the commands may already be live. If a command is not recognized, register them once by copying this skill's command files into the project's command folder:
 
