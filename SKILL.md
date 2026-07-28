@@ -1528,7 +1528,7 @@ Six playbooks, all give-first: you build something the prospect wants and hand i
 | # | Playbook | What it does | Run it when |
 |---|---|---|---|
 | 1 | **Invoice Method** | Mines the user's own billing history for vendors who want testimonials and list customers with links | They need links fast, or have none yet. Fastest to a live link, no asset to build |
-| 2 | **Source Sniping** | Prospects by which domains AI engines actually cite, using `ai-visibility --view competitors` -> `other_cited` | They ask who to pitch, or get no AI mentions. Reorders every other campaign |
+| 2 | **Source Sniping** | Prospects by which domains AI engines actually cite, using `ai-visibility:get --view competitors` -> `other_cited` | They ask who to pitch, or get no AI mentions. Reorders every other campaign |
 | 3 | **Tombstone Method** | Broken link building aimed at dead companies rather than dead URLs, to take listicle slots | Competitors are on every "best of" list and they are not |
 | 4 | **Fact Decay Audit** | Audits a target page for claims that stopped being true, delivers a sourced correction sheet | They have outreach capacity but nothing worth sending |
 | 5 | **Stale Screenshot** | Re-shoots a publisher's outdated product screenshots with browser control | They want links from pages already ranking for their keywords |
@@ -1536,11 +1536,13 @@ Six playbooks, all give-first: you build something the prospect wants and hand i
 
 ### Three rules that override everything else in this section
 
-1. **You do not send the email. The user does.** There is no Distribb endpoint for arbitrary cold outreach. `/link-outreach` is a **different, managed product**: Distribb's own warmed inboxes, Accelerator-gated in-thread replies, and only for prospects Distribb generated. These six playbooks end at a finished draft with the asset attached, saved to a file. Never tell the user you sent something you did not send.
+1. **You do not send the email. The user does.** There is no Distribb endpoint for arbitrary cold outreach. Distribb's managed Link Outreach service is a **different product**: Distribb's own warmed inboxes, only for prospects Distribb generated, and its API surface is replies only (`GET /link-outreach/prospects`, `POST /link-outreach/prospects/:id/reply`, in-thread replying Accelerator-gated). Nothing in the API starts a campaign. These six playbooks end at a finished draft with the asset attached, saved to a file. Never tell the user you sent something you did not send.
 
 2. **Never invent a fact about a prospect's page.** Four of the six work by telling a publisher something about their own content: a decayed fact, an aged screenshot, a dead company, a missing diagram. The publisher checks. If you cannot verify against a primary source, drop the item rather than hedging it.
 
-3. **These are not volume plays.** Ten to thirty sends with a real asset beats five hundred without, and the mechanic stops working at scale precisely because what converts is that it is obviously bespoke. If the user wants volume, point them at `/link-outreach` and the backlink exchange, which are built for it.
+3. **Prospecting data mostly comes from outside Distribb.** `search-console:get` covers the user's own property only, `keywords:search` returns keyword ideas rather than third-party SERPs, there is no referring-domain lookup for arbitrary URLs, and the saved Ahrefs key covers keyword research only. Use `WebSearch` / `WebFetch` or the user's own SEO tool for "pages ranking for X" and referring-domain counts, and say which. Source Sniping is the exception: Distribb hands you the prospect list.
+
+4. **These are not volume plays.** Ten to thirty sends with a real asset beats five hundred without, and the mechanic stops working at scale precisely because what converts is that it is obviously bespoke. If the user wants volume, point them at Distribb's managed Link Outreach service (enabled inside Distribb, not from the API) and the backlink exchange, which are built for it.
 
 ### Where it plugs into the rest of the skill
 
