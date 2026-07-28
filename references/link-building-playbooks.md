@@ -10,9 +10,15 @@ Six playbooks. Each one is a **give-first** play: you build something the prospe
 
 **1. You do not send the email. The user does.**
 
-Distribb's Link Outreach service (`/link-outreach`) is a separate, managed product: Distribb's own warmed inboxes email listicle authors on the user's behalf, and the reply endpoints exist so the user can answer in-thread. Those endpoints only work on prospects Distribb generated, and replying in-thread is Accelerator-only.
+Distribb's Link Outreach service is a separate, managed product: Distribb's own warmed inboxes email listicle authors on the user's behalf. The API surface for it is **replies only**, two endpoints (`GET /link-outreach/prospects`, `POST /link-outreach/prospects/:id/reply`), and they only work on prospects Distribb generated. Replying in-thread is Accelerator-only. Nothing in the API starts a campaign or generates prospects.
 
 **These six playbooks do not run through that system.** There is no Distribb endpoint that sends arbitrary cold email. So your job ends at a finished, ready-to-send draft plus the asset attached to it. Hand the user the file and let them send from their own inbox. Never claim you sent something you did not send.
+
+**1b. Prospecting data mostly comes from outside Distribb.**
+
+Distribb's `search-console:get` covers the user's **own** property only. `keywords:search` returns keyword ideas, not third-party SERPs. There is no referring-domain lookup for arbitrary URLs, and the only Ahrefs surface Distribb has is a bring-your-own key used for keyword research (`POST /keywords/search`), not backlink or DR data.
+
+So when a playbook below says "pages ranking for the user's money keywords" or "referring domains above a floor", get that from `WebSearch` and `WebFetch`, or from the user's own SEO tool. Say which you used. The one exception is Source Sniping, where Distribb hands you the prospect list directly.
 
 **2. Never invent a fact about a prospect's page.**
 
@@ -59,7 +65,7 @@ If the user has no idea where to start, run **Invoice** first (fastest to a live
 
 1. **Get the vendor list from the user.** You cannot read their Stripe or their card. Ask them to paste or export the recurring vendors: every SaaS subscription, host, agency, and tool they pay for. Ask for the plan tier and roughly how long they have been a customer, because both go in the testimonial and both raise the hit rate.
 
-2. **Find each vendor's customer proof surface.** For each vendor, check for `/customers`, `/testimonials`, `/case-studies`, `/wall-of-love`, `/reviews`. Record the URL and check whether the page is server rendered, since a fair number are JS widgets (Testimonial.to, Senja) that render client side and pass nothing.
+2. **Find each vendor's customer proof surface.** For each vendor, check for `/customers`, `/testimonials`, `/case-studies`, `/wall-of-love`, `/reviews`. Record the URL and check whether the page is server rendered, since a fair number are JS widgets (Testimonial.to, Senja) that render client side and pass nothing. If the user has their own Ahrefs access, add the page DR; Distribb's saved Ahrefs key covers keyword research only and will not give you this.
 
 3. **Do not count G2, Capterra, or TrustRadius.** Writing a review there gets the user a byline on the vendor's asset, not an outbound link to the user's site. Worth doing for other reasons. Not a link target, and do not pad the list with them.
 
@@ -77,7 +83,7 @@ If the user has no idea where to start, run **Invoice** first (fastest to a live
 
 ### Deliverable
 
-A table: vendor, proof page URL, page DR if the user has Ahrefs connected, the drafted testimonial, and the contact. Plus the outreach email, once, as a template with the per-vendor line slotted in.
+A table: vendor, proof page URL, page DR where the user can supply it, the drafted testimonial, and the contact. Plus the outreach email, once, as a template with the per-vendor line slotted in.
 
 ### The email
 
@@ -119,17 +125,18 @@ The testimonial has to be genuinely offered whether or not they link. Partly bec
    python distribb_cli.py ai-visibility:scan --project-id <id>
    ```
 
-   Returns 202 and queues. The daily manual scan cap is shared with the dashboard button and the Distribb Agent, so do not burn it on repeat scans. On 429 the response carries `manual_scans_used` and `manual_scans_limit` and resets at midnight UTC. Tell the user rather than retrying.
+   Returns 202 and queues. The **per-project** daily manual scan cap is shared with the dashboard "Scan now" button and the Distribb Agent, so do not burn it on repeat scans. On 429 the response carries `manual_scans_used` and `manual_scans_limit` and resets at midnight UTC. Tell the user rather than retrying.
 
 3. **Pull the cited domains.**
 
    ```bash
    python distribb_cli.py ai-visibility:get --project-id <id> --view competitors
+   python distribb_cli.py ai-visibility:get --project-id <id> --view cited_pages
    ```
 
-   `other_cited` is the prospect list. `rows` is the competitor citation counts, useful context for the pitch. Also pull `--view cited_pages` to see which of the user's own URLs already get cited, since those are the pages worth pointing new links at.
+   `other_cited` is the prospect list. `rows` is the competitor citation counts, useful context for the pitch. `cited_pages` shows which of the user's own URLs already get cited, which is where new links should point.
 
-4. **Rank and cut the head.** Sort `other_cited` by citation count and prompt coverage. Drop Reddit, Wikipedia, YouTube, LinkedIn and the major publishers off the top: the user already knows about them and cannot realistically place there this quarter. What is left in the tail is the list worth working.
+4. **Rank and cut the head.** Sort `other_cited` by citation count. Drop Reddit, Wikipedia, YouTube, LinkedIn and the major publishers off the top: the user already knows about them and cannot realistically place there this quarter. What is left in the tail is the list worth working.
 
 5. **Match each target to a playbook.** For each domain in the tail, look at what it publishes. A listicle gets Tombstone. An old tutorial with screenshots gets Stale Screenshot. A stats-heavy explainer gets Fact Decay. A long unillustrated guide gets Missing Visual. This is the step that makes Source Sniping worth running: it is a prospecting layer, not a campaign, and on its own it produces zero links.
 
@@ -137,7 +144,7 @@ The testimonial has to be genuinely offered whether or not they link. Partly bec
 
 ### Deliverable
 
-Two ranked lists side by side: cited domains by citation frequency, and the same domains by DR. The gap between them is the finding. Then the tail list with a playbook assigned per domain.
+The citation-frequency ranking is the deliverable on its own. If the user has their own Ahrefs or similar, add a DR column beside it and show the two orderings together, because the gap is the argument. Distribb does not return DR for third-party domains, so do not fabricate that column or imply the API produced it. Then the tail list with a playbook assigned per domain.
 
 ### Worth telling the user
 
@@ -163,7 +170,7 @@ There is decent evidence that unlinked brand mentions move AI visibility too, no
 
 2. **Verify the death and keep the receipt.** Screenshot the notice, capture the date, save the URL. The receipt is what makes the email work. Do not pitch a shutdown you cannot evidence.
 
-3. **Find who still lists them.** For each dead product, pull the pages linking to it. Prioritise listicles, "best tools" pages, and comparison posts. If the user has Ahrefs connected, use it. Otherwise search for the dead product's name alongside listicle patterns.
+3. **Find who still lists them.** For each dead product, pull the pages linking to it. Prioritise listicles, "best tools" pages, and comparison posts. Use the user's own backlink tool if they have one; Distribb has no referring-domain lookup for third-party URLs. Otherwise search the dead product's name alongside listicle patterns with `WebSearch`.
 
 4. **Cross reference against Source Sniping.** A dead competitor sitting on a domain that AI engines cite constantly is the highest value target in this whole reference. Work those first.
 
@@ -276,7 +283,7 @@ Per prospect: the rendered visual in both versions, and the email.
 Three of these playbooks are stronger when the user has something on their own domain worth linking to. When the outreach target asks "link to what", the answer should not be the homepage.
 
 - **Fact Decay** and **Tombstone** both point naturally at a comparison or alternatives page. Write and publish one through Distribb (`articles:create`, then `articles:publish`) before the campaign, not after.
-- **Source Sniping** should point at pages that already get cited. Pull `--view cited_pages` and send links at those, since engines have already decided they are quotable.
+- **Source Sniping** should point at pages that already get cited. Pull `ai-visibility:get --view cited_pages` and send links at those, since engines have already decided they are quotable.
 - If the user has no linkable asset at all, run `/statistics-page-writer` first. A statistics page is the best single target for every playbook here, and `references/statistics-page-playbook.md` covers it.
 
 Standard article flow:
@@ -292,6 +299,6 @@ Remember the backlink exchange still applies to anything published this way: lin
 
 ## What to tell the user about results
 
-Be straight about the shape of it. These are 10 to 30 send campaigns with real assets attached, not volume plays. A good campaign is a handful of placements on pages that matter, not a percentage. If the user wants volume, point them at `/link-outreach` (Distribb's managed listicle service) and the backlink exchange, which are built for that and do not need a bespoke asset per prospect.
+Be straight about the shape of it. These are 10 to 30 send campaigns with real assets attached, not volume plays. A good campaign is a handful of placements on pages that matter, not a percentage. If the user wants volume, point them at Distribb's managed Link Outreach service, which is enabled inside Distribb rather than from the API (the `/link-outreach` command only works the replies), and at the backlink exchange. Both are built for volume and neither needs a bespoke asset per prospect.
 
 Set the expectation before the work, not after.
