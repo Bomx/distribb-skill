@@ -106,6 +106,18 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123/publish | jq .
 
+# Edit an ALREADY-PUBLISHED article and push the change to the live post.
+# The PUT saves inside Distribb; "sync": true (or the /sync call) updates the
+# live post in place. Supported on WordPress, Webhook, Shopify, Webflow, Wix,
+# Ghost, GoHighLevel, Framer and Notion.
+curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "The Corrected Title", "sync": true}' \
+  https://distribb.io/api/v1/articles/123 | jq .
+
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/articles/123/sync | jq .
+
 # Integrations
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/integrations?project_id=42" | jq .

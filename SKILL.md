@@ -255,7 +255,7 @@ These rules apply to every article-producing command, helper, and sub-skill. The
 - Preserve existing wrappers, classes, IDs, `data-*` attributes, tables, links, and embeds during edits.
 - Wrap every YouTube iframe in `<div class="youtube-embed">`; include a descriptive `title`, `loading="lazy"`, `allowfullscreen`, and no fixed dimensions.
 
-For every edit: GET and save the article as a rollback copy; patch its fetched `Content`; diff and validate the fragment/IDs/TOC/embeds; PUT only changed fields; GET and verify readback. Published articles must keep their keyword/slug, status, and schedule. Distribb-hosted posts are live from the database; when an external-CMS PUT returns `sync_required: true`, call `POST /api/v1/articles/:id/sync` (the CLI does this automatically unless `--no-sync`). Never republish or create a replacement for an existing live article.
+For every edit: GET and save the article as a rollback copy; patch its fetched `Content`; diff and validate the fragment/IDs/TOC/embeds; PUT only changed fields; GET and verify readback. Published articles keep their slug and status: the API freezes the slug and rejects a move back to Draft/Planned. Distribb-hosted posts are live from the database; when a PUT returns `sync_required: true`, call `POST /api/v1/articles/:id/sync` (or resend the PUT with `"sync": true`; the CLI flag is `--sync`). Never republish or create a replacement for an existing live article.
 
 Before publishing, and again on the live URL, inspect desktop and mobile widths. Confirm the sidebar/TOC matches the real headings and every video fills the article column at 16:9. A non-2xx response or failed readback is failure.
 
@@ -741,7 +741,7 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/articles/123 | jq .
 ```
 
-**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`, `category`, `published_at`. Send only the fields you want to change. For Published articles, `keyword`, `status`, and `scheduled_date` are rejected so the existing URL and publication state cannot drift.
+**Updatable fields:** `title`, `content`, `meta_description`, `keyword`, `article_style`, `status` (Draft or Planned), `scheduled_date`, `category`, `published_at`, `sync`. Send only the fields you want to change. On a Published article the slug is frozen (changing `keyword` updates the keyword but no longer moves the URL) and `status` cannot go back to Draft/Planned, so the live URL and publication state cannot drift.
 
 - `category`: the CMS category NAME to assign (e.g. `"Accessibility Guides"`). It must ALREADY exist on the destination CMS (WordPress or GoHighLevel); Distribb resolves the name to that platform's category at publish time and cannot create new categories. Send `""` to clear it. Detection ships for WordPress and GoHighLevel; other CMSs ignore it for now.
 - `published_at`: a PAST ISO 8601 timestamp used to BACKDATE the post on the CMS (e.g. `"2024-02-05T09:00:00Z"`). This changes only the date the CMS records, NOT when Distribb publishes and NOT the article's position on the content calendar (that is `scheduled_date`). Send `""`/`null` to clear it. Backdating is applied on GoHighLevel today.
@@ -752,11 +752,69 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "article_id": 123,
   "updated_fields": ["Content", "IsPreGenerated"],
   "message": "Article updated successfully.",
-  "backlinks_processed": 2
+  "backlinks_processed": 2,
+  "sync_required": false
 }
 ```
 
 If content is updated and the project participates in the backlink network, Distribb re-scans for network backlinks and updates credits. GET and validate readback after the PUT. If the response says `sync_required: true`, call `POST /api/v1/articles/:id/sync`; this overwrites the existing CMS post and never creates a replacement. Distribb-hosted posts return `sync_required: false` and are live immediately.
+
+### Update a Published Article (edit content that is already live)
+
+Published articles ARE editable. The edit lands inside Distribb first; the live post on the site changes only when you **sync** it. That two-step split means a typo can never go live by accident.
+
+```bash
+# 1. Edit the stored article
+curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg content "$(cat corrected-article.html)" '{"content": $content}')" \
+  https://distribb.io/api/v1/articles/123 | jq .
+
+# 2. Push it to the live post (updates in place, never creates a duplicate)
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/articles/123/sync | jq .
+```
+
+**`sync_required` tells you whether a push is even needed.** Every PUT response carries it:
+
+- `false` on an unpublished article (nothing is live yet).
+- `false` on a Distribb-hosted post (distribb.io serves `/blog/<slug>` straight from the database, so the edit is live the moment it saves).
+- `true` when a live post exists on an external CMS. That is the only case that needs a sync.
+
+Or do both in one call with `"sync": true`:
+
+```bash
+curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "The Corrected Title", "sync": true}' \
+  https://distribb.io/api/v1/articles/123 | jq .
+```
+
+**Two fields are frozen once an article is live:**
+
+- `keyword` still updates the main keyword, but it no longer regenerates the slug. The slug IS the public URL and the key Distribb matches the remote post on, so changing it would 404 the live page and make the next sync create a second post.
+- `status` cannot go back to `Draft` or `Planned` (returns `400 cannot_unpublish`). That would orphan the live post and let the scheduler publish a duplicate over the top of it. To take a post down, unpublish it from the Distribb dashboard or delete it in the CMS.
+
+**Sync outcomes:**
+
+| Response | What it means |
+|---|---|
+| `200 {"status":"synced","url":...}` | The live post now carries your edit. |
+| `400 {"error":"not_published"}` | Nothing live to update yet. Use `POST /api/v1/articles/<id>/publish` first. |
+| `400 {"error":"no_cms_integration"}` | The site is disconnected. Reconnect it at https://distribb.io/integrations . |
+| `400 {"error":"unsupported_for_sync"}` | That platform has no update path yet. Edit the post directly on the platform. |
+| `400 {"error":"sync_failed"}` | The CMS rejected the update; `message` carries the platform's reason. The Distribb-side edit is still saved, so fix the cause and retry the sync. |
+
+**In-place updates are supported on:** WordPress, API Webhook, Shopify, Webflow, Wix, Ghost, GoHighLevel, Framer, Notion. Anything else returns `unsupported_for_sync`.
+
+Syncing is safe to repeat. Distribb finds the remote post by its stored ID, then slug, then title, and fails closed rather than risk publishing a duplicate.
+
+**CLI:**
+
+```bash
+python distribb_cli.py articles:update --article-id 123 --content-file corrected.html --sync
+python distribb_cli.py articles:sync --article-id 123
+```
 
 ### Delete Article
 

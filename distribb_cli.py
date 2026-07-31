@@ -16,6 +16,10 @@ Usage:
   python distribb_cli.py articles:update --article-id 123 --unschedule
   python distribb_cli.py articles:delete --article-id 123
   python distribb_cli.py articles:publish --article-id 123
+  python distribb_cli.py articles:update --article-id 123 --content-file corrected.html --sync   # edit a LIVE post and push it
+  python distribb_cli.py articles:sync --article-id 123                                          # push stored edits to the live post
+  python distribb_cli.py admin:articles:list --slug best-crm-tools          # ADMIN: search every project
+  python distribb_cli.py admin:articles:update --article-id 90199 --content-file new.html --sync  # ADMIN: write straight to BlogArticles
   python distribb_cli.py projects:get --project-id 42
   python distribb_cli.py projects:update --project-id 42 --ai-instructions "Friendly, plain-English tone" --publish-time 09:00 --timezone Europe/Madrid --backlinks-network yes
   python distribb_cli.py projects:update --project-id 42 --set tone=Conversational --set internal_links_per_article=3 --set 'content_pillars=["https://acme.com/crm","https://acme.com/pricing"]'
@@ -145,10 +149,72 @@ def cmd_articles_update(args):
         data['scheduled_date'] = None  # clears the date; a Planned article drops to Draft
     elif args.schedule is not None:
         data['scheduled_date'] = args.schedule
+    if args.sync:
+        data['sync'] = True  # published articles only: also push the edit to the live CMS post
     if not data:
         print(json.dumps({"error": "Nothing to update. Pass at least one of --title/--content/--keyword/--style/--status/--schedule/--unschedule/--meta-description/--category/--published-at."}))
         sys.exit(1)
     print(json.dumps(api('PUT', f'/api/v1/articles/{args.article_id}', json_data=data), indent=2))
+
+
+def cmd_articles_sync(args):
+    print(json.dumps(api('POST', f'/api/v1/articles/{args.article_id}/sync'), indent=2))
+
+
+def _admin_article_body(args):
+    """Build an admin PUT body from --json, repeated --set key=value, and the
+    explicit flags. Later sources win. The literal string 'null' clears a field."""
+    data = {}
+    if getattr(args, 'json', None):
+        try:
+            data.update(json.loads(args.json))
+        except json.JSONDecodeError as e:
+            print(json.dumps({"error": f"--json is not valid JSON: {e}"}))
+            sys.exit(1)
+    for pair in (getattr(args, 'set', None) or []):
+        if '=' not in pair:
+            print(json.dumps({"error": f"--set expects key=value, got {pair!r}"}))
+            sys.exit(1)
+        k, v = pair.split('=', 1)
+        data[k.strip()] = None if v == 'null' else v
+    for flag, key in (('title', 'title'), ('content', 'content'),
+                      ('meta_description', 'meta_description'), ('keyword', 'keyword'),
+                      ('slug', 'slug'), ('status', 'status'), ('category', 'category'),
+                      ('url', 'url'), ('author', 'author'), ('published_at', 'published_at')):
+        value = getattr(args, flag, None)
+        if value is not None:
+            data[key] = None if value == 'null' else value
+    if getattr(args, 'content_file', None):
+        with open(args.content_file, 'r') as f:
+            data['content'] = f.read()
+    return data
+
+
+def cmd_admin_articles_list(args):
+    params = {}
+    for flag in ('project_id', 'slug', 'status', 'user', 'q', 'limit', 'offset'):
+        value = getattr(args, flag, None)
+        if value is not None:
+            params[flag] = value
+    print(json.dumps(api('GET', '/api/v1/admin/articles', params=params), indent=2))
+
+
+def cmd_admin_articles_get(args):
+    print(json.dumps(api('GET', f'/api/v1/admin/articles/{args.article_id}'), indent=2))
+
+
+def cmd_admin_articles_update(args):
+    data = _admin_article_body(args)
+    if args.sync:
+        data['sync'] = True
+    if not data:
+        print(json.dumps({"error": "Nothing to update. Pass flags, --set key=value, --json '{...}', or --sync."}))
+        sys.exit(1)
+    print(json.dumps(api('PUT', f'/api/v1/admin/articles/{args.article_id}', json_data=data), indent=2))
+
+
+def cmd_admin_articles_sync(args):
+    print(json.dumps(api('POST', f'/api/v1/admin/articles/{args.article_id}/sync'), indent=2))
 
 
 def cmd_articles_delete(args):
@@ -472,7 +538,49 @@ def main():
     p.add_argument('--unschedule', action='store_true', help='Clear the scheduled date (Planned -> Draft)')
     p.add_argument('--category', type=str, help='CMS category NAME to assign (must already exist on the CMS); pass "" to clear')
     p.add_argument('--published-at', type=str, help='Past ISO 8601 timestamp to BACKDATE the CMS post (does not move it on the calendar); pass "" to clear')
+    p.add_argument('--sync', action='store_true', help='Published articles: also push this edit to the live CMS post')
     p.set_defaults(func=cmd_articles_update)
+
+    p = sub.add_parser('articles:sync', help='Push edits to an ALREADY-PUBLISHED article out to the live CMS post (updates in place)')
+    p.add_argument('--article-id', type=int, required=True)
+    p.set_defaults(func=cmd_articles_sync)
+
+    # --- Admin only (Distribb staff API keys). Reaches any project. Every write is audit-logged. ---
+    p = sub.add_parser('admin:articles:list', help='ADMIN: find articles across ALL projects')
+    p.add_argument('--project-id', type=int)
+    p.add_argument('--slug', type=str, help='Exact slug match')
+    p.add_argument('--status', type=str, choices=['Draft', 'Planned', 'Published'])
+    p.add_argument('--user', type=str, help='Owner email')
+    p.add_argument('--q', type=str, help='Title or keyword contains')
+    p.add_argument('--limit', type=int, help='Default 50, max 200')
+    p.add_argument('--offset', type=int)
+    p.set_defaults(func=cmd_admin_articles_list)
+
+    p = sub.add_parser('admin:articles:get', help='ADMIN: read any article (full content, URL, ExternalID, owner)')
+    p.add_argument('--article-id', type=int, required=True)
+    p.set_defaults(func=cmd_admin_articles_get)
+
+    p = sub.add_parser('admin:articles:update', help='ADMIN: write straight to BlogArticles for any project')
+    p.add_argument('--article-id', type=int, required=True)
+    p.add_argument('--title', type=str)
+    p.add_argument('--content', type=str)
+    p.add_argument('--content-file', type=str, help='Path to an HTML file to use as the content')
+    p.add_argument('--meta-description', type=str)
+    p.add_argument('--keyword', type=str)
+    p.add_argument('--slug', type=str, help='CAUTION on live posts: the slug is the public URL and the key safe_sync matches on')
+    p.add_argument('--status', type=str, choices=['Draft', 'Planned', 'Published'])
+    p.add_argument('--category', type=str)
+    p.add_argument('--url', type=str, help='CAUTION: repoints the row at a different live URL')
+    p.add_argument('--author', type=str)
+    p.add_argument('--published-at', type=str, help='ISO 8601, or "null" to clear')
+    p.add_argument('--set', action='append', help='Any other field as key=value (repeatable). Use value "null" to clear.')
+    p.add_argument('--json', type=str, help='Raw JSON body for full control')
+    p.add_argument('--sync', action='store_true', help='Also push the result to the connected CMS')
+    p.set_defaults(func=cmd_admin_articles_update)
+
+    p = sub.add_parser('admin:articles:sync', help="ADMIN: push any article's stored state to its CMS")
+    p.add_argument('--article-id', type=int, required=True)
+    p.set_defaults(func=cmd_admin_articles_sync)
 
     p = sub.add_parser('articles:delete', help='Delete a Draft or Planned article')
     p.add_argument('--article-id', type=int, required=True)
