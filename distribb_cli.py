@@ -116,6 +116,8 @@ def cmd_articles_create(args):
         with open(args.content_file, 'r') as f:
             data['content'] = f.read()
     if args.meta_description: data['meta_description'] = args.meta_description
+    if args.feature_image: data['feature_image'] = args.feature_image
+    if args.alt_text: data['alt_text'] = args.alt_text
     if args.schedule: data['scheduled_date'] = args.schedule
     if args.style: data['article_style'] = args.style
     if args.status: data['status'] = args.status
@@ -140,6 +142,9 @@ def cmd_articles_update(args):
         with open(args.content_file, 'r') as f:
             data['content'] = f.read()
     if args.meta_description is not None: data['meta_description'] = args.meta_description
+    # '' is meaningful here: it clears the hero. Test against None, not truthiness.
+    if args.feature_image is not None: data['feature_image'] = args.feature_image
+    if args.alt_text is not None: data['alt_text'] = args.alt_text
     if args.keyword is not None: data['keyword'] = args.keyword
     if args.style is not None: data['article_style'] = args.style
     if args.status is not None: data['status'] = args.status
@@ -152,7 +157,7 @@ def cmd_articles_update(args):
     if args.sync:
         data['sync'] = True  # published articles only: also push the edit to the live CMS post
     if not data:
-        print(json.dumps({"error": "Nothing to update. Pass at least one of --title/--content/--keyword/--style/--status/--schedule/--unschedule/--meta-description/--category/--published-at."}))
+        print(json.dumps({"error": "Nothing to update. Pass at least one of --title/--content/--keyword/--style/--status/--schedule/--unschedule/--meta-description/--category/--published-at/--feature-image/--alt-text."}))
         sys.exit(1)
     print(json.dumps(api('PUT', f'/api/v1/articles/{args.article_id}', json_data=data), indent=2))
 
@@ -510,6 +515,8 @@ def main():
     p.add_argument('--content', type=str)
     p.add_argument('--content-file', type=str, help='Path to HTML file with article content')
     p.add_argument('--meta-description', type=str)
+    p.add_argument('--feature-image', type=str, help='Absolute http(s) URL for the hero image')
+    p.add_argument('--alt-text', type=str, help='Alt text for the hero image (defaults to the title)')
     p.add_argument('--schedule', type=str, help='ISO 8601 date')
     p.add_argument('--style', type=str, choices=['professional', 'casual', 'technical', 'listicle', 'how-to'])
     p.add_argument('--status', type=str, choices=['Draft', 'Planned'])
@@ -525,8 +532,10 @@ def main():
     p.add_argument('--article-id', type=int, required=True)
     p.set_defaults(func=cmd_articles_publish)
 
-    p = sub.add_parser('articles:update', help='Update an article (title, content, keyword, style, status, schedule, category, published-at)')
+    p = sub.add_parser('articles:update', help='Update an article (title, content, keyword, style, status, schedule, category, published-at, feature image)')
     p.add_argument('--article-id', type=int, required=True)
+    p.add_argument('--feature-image', type=str, help="Absolute http(s) URL for the hero image ('' clears it)")
+    p.add_argument('--alt-text', type=str, help='Alt text for the hero image')
     p.add_argument('--title', type=str)
     p.add_argument('--content', type=str)
     p.add_argument('--content-file', type=str, help='Path to HTML file with article content')

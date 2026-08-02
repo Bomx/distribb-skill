@@ -118,6 +118,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Backlink Ledger** | Full link-level detail behind the aggregate status: earned + scheduled links (source domain, DR, business, target URL, status, date) plus a velocity/gap summary | `GET /backlinks` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
 | **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id` |
+| **Feature Image** | Attach a hero image URL to an article (cannot generate one; supply the URL) | `POST /articles`, `PUT /articles/:id` with `feature_image` |
 | **Project Settings** | Read & edit the FULL settings surface (~30 fields): instructions, sitemap/blog URLs, content pillars, tone, writing profile, positioning, images/brand, competitors, toggles, publish time/timezone | `GET /projects/:id`, `PUT /projects/:id` |
 | **Create + Onboard Project** | Create a new project (gated to paid slots; returns a buy-a-slot link if over) and optionally start keyword research + first articles. Ask the user before running research. Connect WordPress via API too | `POST /projects`, `POST /projects/:id/onboarding`, `POST /projects/:id/wordpress` |
 | **Internal Linking** | Get your published article URLs to cross-link in new content | `GET /internal-links` |
@@ -674,6 +675,8 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
     "title": "10 Best CRM Tools for Startups in 2026",
     "content": "<nav class=\"table-of-contents\" aria-label=\"Table of contents\"><h3>Table of Contents</h3><ul><li><a href=\"#introduction\">Introduction</a></li></ul></nav><h2 id=\"introduction\">Introduction</h2><p>Finding the right CRM...</p>",
     "meta_description": "Compare the 10 best CRM tools for startups.",
+    "feature_image": "https://cdn.example.com/crm-comparison-hero.png",
+    "alt_text": "Comparison chart of the 10 best CRM tools for startups",
     "scheduled_date": "2026-04-01T09:00:00Z",
     "status": "Planned"
   }' \
@@ -710,6 +713,33 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 2. Revise the article content to naturally include 1-2 of those URLs.
 3. Call `PUT /api/v1/articles/{article_id}` with the revised content.
 4. If the user has disabled automatic revision, inform them: "This article doesn't include any backlinks to the exchange network. You won't earn backlink credits for it, which means fewer backlinks from other businesses."
+
+### Feature image
+
+`feature_image` is an absolute `http(s)` URL, stored as the article's hero. Send
+`alt_text` with it; if you omit it, the title is used. Both fields also work on
+`PUT /api/v1/articles/{id}`, where `"feature_image": ""` clears the hero.
+
+**Distribb cannot generate an image for you through this API.** The writer pipeline
+that normally produces a hero does not run on content you submit yourself, so an
+article you create here has no feature image unless you supply one. Generating a new
+image is a dashboard action.
+
+**IMPORTANT:** If `image_warning` is present in the response, the article has no hero:
+
+1. If `image_candidates` is also present, those are absolute image URLs already
+   embedded in the article body. Promote the best one:
+   `PUT /api/v1/articles/{article_id}` with `{"feature_image": "<url>"}`.
+2. **Do not blindly take the first candidate.** In a listicle the early images are
+   usually screenshots of the competitors being reviewed, and a competitor's product
+   shot makes a poor hero for the user's own article. Pick one that represents the
+   user's brand, or a neutral/illustrative one.
+3. If there are no candidates, ask the user for an image URL rather than leaving it
+   blank silently.
+
+Without a hero the article loses its `og:image` (no preview card when the link is
+shared), its schema.org `image`, its on-page hero, and its thumbnail on the blog
+index. Medium and LinkedIn syndication read the same field.
 
 For long articles, write the HTML to a file and use `@` syntax:
 
