@@ -1832,10 +1832,10 @@ This skill runs on any OpenAI-compatible endpoint; for NVIDIA's free NIM API see
 export OPENAI_API_KEY=nvapi-...
 export AI_BASE_URL=https://integrate.api.nvidia.com/v1
 export AI_MODEL=meta/llama-3.3-70b-instruct
-export RESEARCH_MODEL=deepseek-ai/deepseek-r1
+export RESEARCH_MODEL=deepseek-ai/deepseek-v4-pro
 export AI_MAX_TOKENS=4000
 export AI_RESEARCH_MAX_TOKENS=4000
 export AI_MAX_RETRIES=5
 ```
 
-`AI_MAX_TOKENS` is REQUIRED when using NVIDIA — without it, long article generation requests 12000 output tokens, exceeds the model's cap, and now raises rather than silently truncating.
+Set `AI_MAX_TOKENS` when using NVIDIA. Article generation requests 12000 output tokens; `meta/llama-3.3-70b-instruct` accepts that without truncating, but output caps are per-model and several NIM models are far lower. If a model does truncate, the scripts now raise on `finish_reason=length` instead of silently returning half an article. Both clamps default to unset, so behavior is unchanged for OpenAI users.
