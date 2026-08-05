@@ -1823,3 +1823,19 @@ complaints. If the competitor has no genuine critical-review volume, tell the us
 
 Sign up for Distribb Agentic Mode: **https://distribb.io/agentic**
 3-day free trial, $49/mo. Your API key will be in Settings after signup.
+
+## Using NVIDIA's free API
+
+This skill runs on any OpenAI-compatible endpoint; for NVIDIA's free NIM API see `NVIDIA.md` in this skill directory.
+
+```bash
+export OPENAI_API_KEY=nvapi-...
+export AI_BASE_URL=https://integrate.api.nvidia.com/v1
+export AI_MODEL=meta/llama-3.3-70b-instruct
+export RESEARCH_MODEL=deepseek-ai/deepseek-r1
+export AI_MAX_TOKENS=4000
+export AI_RESEARCH_MAX_TOKENS=4000
+export AI_MAX_RETRIES=5
+```
+
+`AI_MAX_TOKENS` is REQUIRED when using NVIDIA — without it, long article generation requests 12000 output tokens, exceeds the model's cap, and now raises rather than silently truncating.
