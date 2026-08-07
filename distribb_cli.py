@@ -25,7 +25,7 @@ Usage:
   python distribb_cli.py projects:update --project-id 42 --set tone=Conversational --set internal_links_per_article=3 --set 'content_pillars=["https://acme.com/crm","https://acme.com/pricing"]'
   python distribb_cli.py projects:update --project-id 42 --json '{"writing_profile":"Balanced SEO","cta_intensity":"Soft","brand_color":"#1d4ed8"}'
   python distribb_cli.py projects:create --website-url https://client.com --business-name "Client Co" --set tone=Conversational
-  python distribb_cli.py projects:onboard --project-id 77   # ASK THE USER FIRST — spends credits
+  python distribb_cli.py projects:onboard --project-id 77   # ASK THE USER FIRST, spends credits
   python distribb_cli.py projects:wordpress --project-id 77 --wordpress-url https://client.com --integration-key "<plugin key>"
   python distribb_cli.py keywords:search --project-id 42 --keyword "crm software"
   python distribb_cli.py backlinks:targets --project-id 42 --keyword "crm software"
@@ -39,7 +39,7 @@ Usage:
   python distribb_cli.py gbp:reply --project-id 42 --review-id "accounts/.../reviews/AbFvOq..." --message "Thanks Sarah!"
   python distribb_cli.py gbp:posts:create --project-id 42 --text "Spring checks now booking" --link https://acme.com/offer
   python distribb_cli.py link-outreach:replies --project-id 42
-  python distribb_cli.py link-outreach:reply --prospect-id 1159 --message "Thanks Bill. What does the #6-10 slot run per year?"   # ASK THE USER FIRST — sends a real email
+  python distribb_cli.py link-outreach:reply --prospect-id 1159 --message "Thanks Bill. What does the #6-10 slot run per year?"   # ASK THE USER FIRST, sends a real email
   python distribb_cli.py suggestions:list --project-id 42 --status pending
   python distribb_cli.py suggestions:run --project-id 42
   python distribb_cli.py suggestions:get --suggestion-id 123
@@ -289,7 +289,7 @@ def cmd_projects_create(args):
 
 
 def cmd_projects_onboard(args):
-    """Start keyword research + first articles. ASK THE USER before running — it spends credits."""
+    """Start keyword research + first articles. ASK THE USER before running, it spends credits."""
     print(json.dumps(api('POST', f'/api/v1/projects/{args.project_id}/onboarding'), indent=2))
 
 
@@ -623,7 +623,7 @@ def main():
     p.add_argument('--project-id', type=int, required=True)
     p.set_defaults(func=cmd_projects_get)
 
-    p = sub.add_parser('projects:update', help='Update project settings — the FULL UI surface (~30 fields). Use --json/--set for any field.')
+    p = sub.add_parser('projects:update', help='Update project settings: the FULL UI surface (~30 fields). Use --json/--set for any field.')
     p.add_argument('--project-id', type=int, required=True)
     p.add_argument('--ai-instructions', type=str, help='Customize Article Instructions text')
     p.add_argument('--business-description', type=str)
@@ -648,7 +648,7 @@ def main():
     p.add_argument('--json-file', type=str, help='Path to a JSON file of extra settings')
     p.set_defaults(func=cmd_projects_create)
 
-    p = sub.add_parser('projects:onboard', help='Start keyword research + first articles (ASK THE USER FIRST — spends credits)')
+    p = sub.add_parser('projects:onboard', help='Start keyword research + first articles (ASK THE USER FIRST, spends credits)')
     p.add_argument('--project-id', type=int, required=True)
     p.set_defaults(func=cmd_projects_onboard)
 

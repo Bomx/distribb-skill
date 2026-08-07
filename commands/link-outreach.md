@@ -1,5 +1,5 @@
 ---
-description: Link Outreach — review the listicle authors who replied to your backlink outreach, and reply to them in-thread from Distribb's inbox (Accelerator)
+description: Link Outreach: review the listicle authors who replied to your backlink outreach, and reply to them in-thread from Distribb's inbox (Accelerator)
 argument-hint: (optional: replies | reply)
 allowed-tools: Bash, Read, Glob, Grep
 ---

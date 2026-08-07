@@ -293,7 +293,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 **IMPORTANT:** Check the `BecklinksNetworkParticipation` field. If it is `"Yes"`, this project is part of the backlink exchange network. You MUST call `/backlink-targets` before writing each article and include 1-2 target URLs in the content. This is how the user earns backlinks from other real businesses. Skipping this means the user gives nothing and receives nothing from the network.
 
-### Project Settings (Read & Edit) — the FULL settings surface
+### Project Settings (Read & Edit): the FULL settings surface
 
 `GET` returns a `settings` object; `PUT` accepts that **same shape**. So the loop is: GET, change the keys you want, PUT them back (read-modify-write). The PUT exposes the *entire* Settings UI, ~30 fields, not just a handful, so you can configure a project end-to-end without the dashboard. This is what makes agency-scale onboarding possible.
 
@@ -302,7 +302,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   https://distribb.io/api/v1/projects/42 | jq .settings
 
-# Edit settings (send ONLY the keys you want to change — partial updates are safe)
+# Edit settings (send ONLY the keys you want to change, partial updates are safe)
 curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -334,7 +334,7 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 | `sitemap_url` | Sitemap URL (used to build the internal-link index). |
 | `blog_root_url` | Blog root URL. |
 | `content_pillars` | **List of URLs** (drives topic clusters + internal links). Each must be a valid URL, no spaces. |
-| `internal_links_per_article` (`internal_links`) | Integer `1`–`5`. |
+| `internal_links_per_article` (`internal_links`) | Integer `1` to `5`. |
 | `tone` | `Informative` \| `Conversational` \| `Persuasive`. |
 | `language` | UI label or code, e.g. `English (US)`, `French`, `en-gb`. |
 | `keyword_region` | e.g. `United States`, `United Kingdom`, `Worldwide`. |
@@ -377,8 +377,8 @@ curl -s -X PUT -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 ```
 
 **Not settable via API:**
-- `articles_per_day` — plan-controlled. If sent, it's echoed back under `ignored`. Read it via `GET /api/v1/projects` or the `settings` block.
-- **Optimization thresholds** (`min_position`, `max_position`, `min_impressions_per_week`, `min_article_age_days`, `excluded_article_ids`) — applied at scan time by `POST /api/v1/suggestions/run`, not yet persisted per project. Sent values are echoed under `ignored`.
+- `articles_per_day` is plan-controlled. If sent, it's echoed back under `ignored`. Read it via `GET /api/v1/projects` or the `settings` block.
+- **Optimization thresholds** (`min_position`, `max_position`, `min_impressions_per_week`, `min_article_age_days`, `excluded_article_ids`) are applied at scan time by `POST /api/v1/suggestions/run`, not yet persisted per project. Sent values are echoed under `ignored`.
 
 ### Create a Project (agency-scale onboarding)
 
@@ -424,9 +424,9 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 Starts the same pipeline the dashboard runs when onboarding finishes: GSC-aware keyword discovery -> a planned content calendar -> the first articles begin generating. Returns **202**; poll `GET /api/v1/articles?project_id=77` to watch planned articles appear.
 
-- **Always ask the user first** — this spends keyword/LLM credits.
+- **Always ask the user first**, this spends keyword/LLM credits.
 - If the project already has articles, it returns `already_onboarded` and does nothing.
-- On Free / Agentic plans this returns `skipped_byok` (those plans bring their own keywords — use `POST /api/v1/keywords/search` then `POST /api/v1/articles`).
+- On Free / Agentic plans this returns `skipped_byok` (those plans bring their own keywords, use `POST /api/v1/keywords/search` then `POST /api/v1/articles`).
 
 ### Connect WordPress
 
@@ -1075,7 +1075,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 ### Google Business Profile (reviews, replies, posts, analytics)
 
-Act on the user's **connected Google Business Profile**: read their Google reviews live, post or delete the business's public review replies, queue Google Business posts, and pull post analytics. Local-SEO leverage in one surface — reviews with owner replies convert better and fresher profiles rank better in the map pack. **Requires the Google Business integration** (Integrations page -> 'Add Integration' -> 'Google Business', signed in with the Google account that manages the profile).
+Act on the user's **connected Google Business Profile**: read their Google reviews live, post or delete the business's public review replies, queue Google Business posts, and pull post analytics. Local-SEO leverage in one surface: reviews with owner replies convert better and fresher profiles rank better in the map pack. **Requires the Google Business integration** (Integrations page -> 'Add Integration' -> 'Google Business', signed in with the Google account that manages the profile).
 
 ```bash
 # Connection + live review summary (business name, address, totals, unreplied count)
@@ -1100,7 +1100,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 }
 ```
 
-When `connected` is `false` the body carries `instructions_for_agent` — relay it verbatim and stop until the user connects.
+When `connected` is `false` the body carries `instructions_for_agent`, so relay it verbatim and stop until the user connects.
 
 **List reviews (live from Google):**
 
@@ -1118,11 +1118,11 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 Each review: `review_id`, `reviewer_name`, `rating`, `text`, `created`, `has_reply`, `reply_text`, `reply_created`, `review_url`. The response's `total_reviews` / `average_rating` reflect the **current filter** (with `has_reply=false`, `total_reviews` is the unreplied total).
 
-**Reply to a review (PUBLIC — confirm wording with the user first):**
+**Reply to a review (PUBLIC, confirm wording with the user first):**
 
 ```bash
 curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
-  -d '{"project_id": 42, "review_id": "accounts/.../locations/.../reviews/AbFvOq...", "message": "Thanks Sarah — glad the switchboard upgrade went smoothly. See you on the next project!"}' \
+  -d '{"project_id": 42, "review_id": "accounts/.../locations/.../reviews/AbFvOq...", "message": "Thanks Sarah, glad the switchboard upgrade went smoothly. See you on the next project!"}' \
   https://distribb.io/api/v1/gbp/reviews/reply | jq .
 
 # Remove a posted reply (the review itself cannot be deleted)
@@ -1141,7 +1141,7 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: a
   https://distribb.io/api/v1/gbp/posts | jq .
 ```
 
-Body: `text` (required, max 1500 chars), `link` (optional, becomes the post's **Learn More** button), `image_url` (optional, public http(s) image), `scheduled_date` (optional, `YYYY-MM-DD` or `YYYY-MM-DD HH:MM` UTC). With `scheduled_date` the post is `scheduled` and auto-publishes at that time; without it the post is saved as a `draft` for review in the Social Composer. Returns **201** with `post_id` + `status`. Articles published through Distribb also auto-repurpose to Google Business when the integration is connected — use this endpoint for standalone posts (offers, updates, seasonal pushes).
+Body: `text` (required, max 1500 chars), `link` (optional, becomes the post's **Learn More** button), `image_url` (optional, public http(s) image), `scheduled_date` (optional, `YYYY-MM-DD` or `YYYY-MM-DD HH:MM` UTC). With `scheduled_date` the post is `scheduled` and auto-publishes at that time; without it the post is saved as a `draft` for review in the Social Composer. Returns **201** with `post_id` + `status`. Articles published through Distribb also auto-repurpose to Google Business when the integration is connected, so use this endpoint for standalone posts (offers, updates, seasonal pushes).
 
 **Post analytics:**
 
@@ -1153,10 +1153,10 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 Covers Google Business posts published through Distribb (post counts + per-post engagement where Google provides it).
 
 **Agent contract:**
-- Review counts, ratings, and review text must come **only** from these payloads — never estimate or invent them.
+- Review counts, ratings, and review text must come **only** from these payloads, never estimate or invent them.
 - Replies are **public on Google immediately** under the business name. Unless the user already supplied or approved the exact wording, show the draft and get a go-ahead before `POST /gbp/reviews/reply`. Bulk-replying is fine once the user approves the approach and tone (e.g. "reply to all unreplied 5-star reviews, one line each, varied wording").
 - This connection **cannot** read location insights (calls, direction requests, website clicks, search keywords), Q&A, photos, or edit business info. Say so when asked instead of promising them.
-- A `404` with `instructions_for_agent` on the write endpoints means Google Business is not connected — relay the instructions.
+- A `404` with `instructions_for_agent` on the write endpoints means Google Business is not connected, so relay the instructions.
 
 **Good `/gbp` workflow:** `GET /gbp/status` -> if `unreplied_count > 0`, pull `has_reply=false` reviews -> draft replies in the brand voice (get approval) -> post them -> finish with a queued Google Business post pointing at the latest published article.
 
@@ -1164,8 +1164,8 @@ Covers Google Business posts published through Distribb (post counts + per-post 
 
 Link Outreach is Distribb's managed service that emails "best of" / "top tools" listicle authors, from Distribb's warmed inboxes, asking to add the user's business to lists that already rank their competitors. Discovery, sending, and follow-ups are automatic. This surface is for the **replies**: seeing which authors answered (and what they want) and responding to them **in-thread**, without the user leaving Distribb.
 
-- `GET /link-outreach/prospects?project_id=...&status=replied,offer&limit=50` — the authors who replied. Each row: `prospect_id`, `host`, `author_name`, `author_email`, `status` (`replied` or `offer`), the author's `reply` (their actual message), and `offer_amount` / `offer_currency` when they named an asking price. Omit `project_id` to span every project the key owns; `status=all` returns the whole pipeline. Read-only, 30 req/min.
-- `POST /link-outreach/prospects/:id/reply` with `{ "body": "<the reply>" }` — sends the user's reply **in-thread from the Distribb inbox that ran the original outreach**, so it stays connected and lands in the author's inbox. **Accelerator only** (other plans reply from their own inbox). 10 req/min.
+- `GET /link-outreach/prospects?project_id=...&status=replied,offer&limit=50` lists the authors who replied. Each row: `prospect_id`, `host`, `author_name`, `author_email`, `status` (`replied` or `offer`), the author's `reply` (their actual message), and `offer_amount` / `offer_currency` when they named an asking price. Omit `project_id` to span every project the key owns; `status=all` returns the whole pipeline. Read-only, 30 req/min.
+- `POST /link-outreach/prospects/:id/reply` with `{ "body": "<the reply>" }` sends the user's reply **in-thread from the Distribb inbox that ran the original outreach**, so it stays connected and lands in the author's inbox. **Accelerator only** (other plans reply from their own inbox). 10 req/min.
 
 **Agent contract (this SENDS a real email on the user's behalf):**
 - Always `GET` the replies first and summarize them. Quote the `reply` text and any `offer_amount` exactly. Never invent a price, terms, or intent the author did not state.
@@ -1811,7 +1811,7 @@ paraphrase-as-a-quote, or doctor a review. Cherry-picking the honest negatives i
 comparative marketing; fabricating or misrepresenting a competitor is false advertising and
 defamation. Be honest about the competitor's overall rating and win on the *pattern* in the
 complaints. If the competitor has no genuine critical-review volume, tell the user and stop.
-**The alternative is always the connected project's own business — pulled from
+**The alternative is always the connected project's own business, pulled from
 `/business-context`, never a hardcoded company.**
 
 ### Workflow
@@ -1824,7 +1824,7 @@ complaints. If the competitor has no genuine critical-review volume, tell the us
    ```
 2. **Pick the keyword.** Search "<competitor> reviews" and "<competitor> alternative"; the
    primary keyword becomes the title spine and the companion article's keyword. (On Free
-   Agentic this returns HTTP 402 `byo_keys_required` until SEO keys are saved — surface it
+   Agentic this returns HTTP 402 `byo_keys_required` until SEO keys are saved, so surface it
    verbatim and use the concept instead.)
    ```bash
    curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
@@ -1849,7 +1849,7 @@ complaints. If the competitor has no genuine critical-review volume, tell the us
 
 ### Rules
 - Real, verified, attributable reviews only; keep the on-screen source visible.
-- The alternative is the connected project's business, from `/business-context` — never a
+- The alternative is the connected project's business, from `/business-context`, never a
   hardcoded company. Only push that project.
 - Real review screenshots, never generated ones. Confirm the YouTube connection and show the
   verified reviews + script before any paid generation.

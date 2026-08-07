@@ -12,7 +12,7 @@ Flow:
   3. Dedupe by normalized title and filter to the last N days.
   4. Rank by recency (newest first) and write news_topics_export.csv.
 
-No external dependencies — standard library only (mirrors the other seo-tools
+No external dependencies, standard library only (mirrors the other seo-tools
 scripts). Writes its CSV next to itself, like the rest of the toolkit.
 """
 
@@ -124,7 +124,7 @@ def main() -> None:
         sys.exit('Usage: python3 news_topics.py "<query1>" ["<query2>" ...]')
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    print(f"\n📰  News topics — last {days} days")
+    print(f"\n📰  News topics: last {days} days")
     print(f"🔎  Queries: {', '.join(queries)}\n")
 
     collected: list[dict] = []
@@ -144,7 +144,7 @@ def main() -> None:
     if not collected:
         if failures:
             sys.exit("ERROR: every query failed to fetch. Check your connection "
-                     "or try again — Google News RSS may be rate-limiting.")
+                     "or try again. Google News RSS may be rate-limiting.")
         sys.exit("ERROR: no headlines found for those queries.")
 
     # Dedupe by normalized title (keep the first / most relevant occurrence).
@@ -157,7 +157,7 @@ def main() -> None:
         seen.add(key)
         deduped.append(it)
 
-    # Recency filter — keep undated items (Google sometimes omits pubDate).
+    # Recency filter: keep undated items (Google sometimes omits pubDate).
     fresh = [it for it in deduped if it["dt"] is None or it["dt"] >= cutoff]
 
     # Newest first; undated sink to the bottom.

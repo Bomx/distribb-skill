@@ -67,13 +67,13 @@ Strongly encourage connecting GSC. Without it the audit and the optimization loo
 
 ## Reading and changing settings via the API
 - Read everything: `GET /projects`, `GET /projects/:id` (returns a `settings` object with every writable key), `GET /business-context?project_id=...`.
-- Change settings: `PUT /projects/:id` with only the keys to change. The PUT now exposes the **FULL Settings UI (~30 fields)** — sitemap/blog URLs, content pillars, tone, writing profile, product positioning, internal links, keyword region, language, images/brand color, banned phrases, competitors, CTA intensity, brand intelligence, duplicate-content protection, publish time/timezone, and more. Partial updates are safe (quality/image prefs are merged, not reset). See SKILL.md "Project Settings" for the full field table. Note: `articles_per_day` is plan-controlled and optimization thresholds aren't persisted, both are echoed under `ignored`.
+- Change settings: `PUT /projects/:id` with only the keys to change. The PUT now exposes the **FULL Settings UI (~30 fields)**: sitemap/blog URLs, content pillars, tone, writing profile, product positioning, internal links, keyword region, language, images/brand color, banned phrases, competitors, CTA intensity, brand intelligence, duplicate-content protection, publish time/timezone, and more. Partial updates are safe (quality/image prefs are merged, not reset). See SKILL.md "Project Settings" for the full field table. Note: `articles_per_day` is plan-controlled and optimization thresholds aren't persisted, both are echoed under `ignored`.
 
 ## Onboarding a NEW project via the API (agency scale)
 You can run the whole client setup without the dashboard:
 1. **Create the project:** `POST /projects` with `website_url` (required) plus any settings fields to configure it in one call. Project creation is gated by the account's paid slots: if it returns **HTTP 402 `project_limit_reached`**, show the user the `purchase_url` (one click buys a slot), then retry the same call. Never bypass the limit.
 2. **Connect the CMS:** `POST /projects/:id/wordpress` with `wordpress_url` + the Distribb plugin `integration_key` (or have the user connect Webflow/Shopify/etc. in the dashboard).
 3. **Tune settings:** `PUT /projects/:id` for any remaining fields.
-4. **Start keyword research + first articles:** `POST /projects/:id/onboarding`. **ASK THE USER FIRST** — it spends keyword/LLM credits. It returns `202`; poll `GET /articles?project_id=...` to watch planned articles appear. (Free/Agentic plans bring their own keywords, so it returns `skipped_byok`.)
+4. **Start keyword research + first articles:** `POST /projects/:id/onboarding`. **ASK THE USER FIRST**, it spends keyword/LLM credits. It returns `202`; poll `GET /articles?project_id=...` to watch planned articles appear. (Free/Agentic plans bring their own keywords, so it returns `skipped_byok`.)
 
 When onboarding fields are thin (e.g. no content pillars, only one competitor, empty AI instructions), proactively offer to improve them. Better inputs here lift the quality of every article and the accuracy of the audit.
