@@ -344,6 +344,30 @@ def cmd_integrations_list(args):
     print(json.dumps(api('GET', '/api/v1/integrations', params=params), indent=2))
 
 
+def cmd_social_accounts(args):
+    print(json.dumps(api('GET', '/api/v1/social/accounts',
+                         params={'project_id': args.project_id}), indent=2))
+
+
+def cmd_social_publish(args):
+    platforms = [p.strip().lower() for p in args.platforms.split(',') if p.strip()]
+    if args.account_id:
+        # A single --account-id only makes sense for a single platform; pinning
+        # every platform to one account id would post to the wrong places.
+        if len(platforms) != 1:
+            sys.exit('--account-id applies to one platform at a time. '
+                     'Run the command once per platform, or drop it and let '
+                     'Distribb resolve the account.')
+        platforms = [{'platform': platforms[0], 'account_id': args.account_id}]
+    body = {'project_id': args.project_id, 'content': args.content, 'platforms': platforms}
+    if args.link: body['link'] = args.link
+    if args.scheduled_for: body['scheduled_for'] = args.scheduled_for
+    if args.overrides_file:
+        with open(args.overrides_file) as fh:
+            body['platform_overrides'] = json.load(fh)
+    print(json.dumps(api('POST', '/api/v1/social/publish', json_data=body), indent=2))
+
+
 def cmd_search_console(args):
     params = {'project_id': args.project_id}
     if args.days: params['days'] = args.days
@@ -669,6 +693,20 @@ def main():
     p.add_argument('--project-id', type=int, required=True)
     p.add_argument('--keyword', type=str, required=True)
     p.set_defaults(func=cmd_internal_links)
+
+    p = sub.add_parser('social:accounts', help="List the social accounts connected to a project (platform + account_id)")
+    p.add_argument('--project-id', type=int, required=True)
+    p.set_defaults(func=cmd_social_accounts)
+
+    p = sub.add_parser('social:publish', help="Post to the connected social accounts (CONFIRM THE COPY WITH THE USER FIRST - this is public and immediate)")
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--content', type=str, required=True, help='The post text')
+    p.add_argument('--platforms', type=str, required=True, help="Comma-separated, e.g. 'linkedin,x'")
+    p.add_argument('--account-id', type=str, help='Only needed when one platform has several connected accounts')
+    p.add_argument('--link', type=str, help='Appended on LinkedIn/Facebook so the preview card renders')
+    p.add_argument('--overrides-file', type=str, help='JSON file of per-platform copy and options')
+    p.add_argument('--scheduled-for', type=str, help="ISO8601 UTC, e.g. '2026-08-09T14:30:00Z'")
+    p.set_defaults(func=cmd_social_publish)
 
     p = sub.add_parser('integrations:list', help='List CMS and social integrations')
     p.add_argument('--project-id', type=int)

@@ -1,6 +1,6 @@
 ---
 name: distribb
-description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, link building outreach playbooks, internal linking, social media repurposing, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, run link building or backlink outreach campaigns, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, or manage Microworkers campaigns.
+description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, link building outreach playbooks, internal linking, social media repurposing and posting, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, run link building or backlink outreach campaigns, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, post to their connected social accounts, or manage Microworkers campaigns.
 homepage: https://distribb.io
 metadata: {"clawdbot":{"emoji":"🔍","requires":{"env":["DISTRIBB_API_KEY"]}}}
 ---
@@ -130,6 +130,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **AI Visibility (AEO)** | Distribb's already-tracked AI-search visibility: visibility score, share-of-voice, per-engine citation status (ChatGPT, Perplexity, Gemini, AI Overviews, AI Mode), cited pages, on-demand scans. Track your **own buyer-query prompts** (up to 25/project, scanned first) and scan AI Overview / AI Mode / ChatGPT / Gemini from the client's **own city** via `primary_location` | `GET /ai-visibility`, `POST /ai-visibility/scan`, `POST\|DELETE /ai-visibility/prompts` |
 | **Content Optimizations** | Find pages worth rewriting (mostly from GSC), review the AI's before/after diff, then approve and publish the rewrite to the CMS. Filter by opportunity with `?type=` (cannibalisation, declining_page, striking_distance, ctr_underperform, ...) | `GET /suggestions`, `POST /suggestions/run`, `POST /suggestions/:id/approve\|publish\|regenerate\|reject` |
 | **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
+| **Social Media Posting** | Write a post and send it to the user's connected accounts, now or scheduled | `GET /social/accounts`, `POST /social/publish` |
 | **Microworkers Campaign Management** | Create/register campaigns, list submissions, and rate worker slots for Reddit, Quora, YouTube, or generic proof tasks | `GET/POST /microworkers/campaigns`, `GET /microworkers/campaigns/:id/slots`, `POST /microworkers/slots/:slot_id/rate` |
 
 ---
@@ -176,7 +177,7 @@ Users often ask "where do I see X?" Here is the map (full detail in `references/
 | **Dashboard** | Overview of projects and recent activity | `GET /projects` |
 | **Content Calendar** | See and manage planned / draft / published articles and their schedule | `GET /articles`, `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id` |
 | **Settings** | Business description, custom AI instructions, publish time, timezone, backlink-network toggle, SEO data keys | `GET /projects/:id`, `PUT /projects/:id` |
-| **Integrations** | Connect CMS, social accounts, Google Search Console, and Google Business Profile | `GET /integrations`, `GET /search-console`, `GET /gbp/status` |
+| **Integrations** | Connect CMS, social accounts, Google Search Console, and Google Business Profile | `GET /integrations`, `GET /search-console`, `GET /gbp/status`, `GET /social/accounts` |
 | **Backlinks** | See backlinks earned and given, and credits (aggregate) or the full link-by-link ledger | `GET /backlinks/status`, `GET /backlinks`, `GET /backlink-targets` |
 | **Optimizations / Suggestions** | Review and approve GSC-driven rewrites of underperforming pages | `GET /suggestions`, `POST /suggestions/run`, approve/publish |
 
@@ -905,6 +906,72 @@ Use this only for Draft/Planned articles without a live post. For a Published ar
 When an article is published to the user's CMS, Distribb automatically generates social media posts for every platform the user has connected (X/Twitter, LinkedIn, Reddit, Facebook, Instagram, etc.). The agent does not need to call any endpoint for this. It happens server-side.
 
 The social posts are created as drafts in the user's content calendar so they can review, edit, or schedule them from the Distribb dashboard. If the user has connected social accounts, publishing an article through the API triggers this automatically.
+
+### Posting to Social Media Yourself
+
+Repurposing is automatic, but you can also write a post and send it to the user's connected accounts. This is the same publisher behind the dashboard's Social Composer, so anything you send lands in their calendar next to everything else.
+
+**1. See what is connected.**
+
+```bash
+curl -s "https://distribb.io/api/v1/social/accounts?project_id=42" \
+  -H "Authorization: Bearer $DISTRIBB_API_KEY" | jq
+```
+
+Returns `{connected, accounts: [{platform, account_id, account_name}], instructions_for_agent}`. A project with nothing connected is not an error: it returns `200` with `connected: false`. Connecting an account is a browser OAuth step at https://distribb.io/integrations, so you cannot do it for the user.
+
+**2. Post.**
+
+```bash
+curl -s -X POST https://distribb.io/api/v1/social/publish \
+  -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": 42,
+    "content": "The three keyword mistakes that cost us six months.",
+    "platforms": ["linkedin", "x"],
+    "link": "https://example.com/blog/keyword-mistakes"
+  }' | jq
+```
+
+| Field | Notes |
+|---|---|
+| `project_id` | Required. Must be a project the API key's account owns or is a team member of. |
+| `content` | Required. The post text. |
+| `platforms` | Required. `["linkedin", "x"]`, or `[{"platform": "x", "account_id": "..."}]` when one platform has several connected accounts. |
+| `link` | Optional. Stored with the post. On LinkedIn and Facebook it is appended to the text so the preview card renders. |
+| `media_files` | Optional. `[{"type": "image", "s3_url": "..."}]`. |
+| `platform_overrides` | Optional. Per-platform copy and per-network options, keyed by platform. |
+| `scheduled_for` | Optional ISO8601 UTC. Schedules the post instead of sending it now. |
+
+The CLI wraps both:
+
+```bash
+python distribb_cli.py social:accounts --project-id 42
+python distribb_cli.py social:publish --project-id 42 --platforms linkedin,x \
+  --content "The three keyword mistakes that cost us six months." \
+  --link https://example.com/blog/keyword-mistakes
+```
+
+Supported platforms: `x` (or `twitter`), `linkedin`, `facebook`, `instagram`, `threads`, `bluesky`, `reddit`, `tiktok`, `youtube`, `pinterest`, `telegram`, `snapchat`, `googlebusiness`.
+
+**Per-platform copy beats one shared post.** Use `platform_overrides` to rewrite for each network and to reach the options only that network has:
+
+```json
+{
+  "platform_overrides": {
+    "x": {"threadSteps": ["Second tweet.", "Third tweet."]},
+    "linkedin": {"text": "A longer, first-person version.", "firstComment": "Full breakdown: https://example.com/blog/keyword-mistakes"},
+    "reddit": {"subredditName": "SEO", "title": "What six months of keyword mistakes taught us"}
+  }
+}
+```
+
+**Scheduling.** With `scheduled_for` the post is saved as scheduled and goes out within five minutes of that time, and the user can still edit or delete it in the dashboard until then. The response is a `201` with `scheduled: true`. Without it the post publishes immediately and the response carries the live URLs.
+
+**Character limits are enforced server-side**: X 280, Bluesky 300, Threads 500, Pinterest 500, Google Business 1500, Instagram and TikTok 2200, LinkedIn 3000, YouTube 5000. Going over is a `400` naming the platform and the count, so write to the limit rather than fixing it after a rejection.
+
+**Confirm the copy before you send it.** A published post is public and immediate, and deleting it later does not undo who saw it. Show the user the exact text per platform and wait for a yes, unless they have already told you to post without checking.
 
 ### YouTube SEO With Motion Videos (`/youtube-motion-video`)
 

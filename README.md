@@ -6,7 +6,7 @@ npx skills add Bomx/distribb-skill
 
 # Distribb SEO Skill
 
-SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: real keyword data, backlinks from real businesses, a Google Search Console audit, CMS publishing, content calendar, social repurposing, Google Business Profile management (live reviews, public replies, Google posts), Microworkers campaign management, and analytics.
+SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: real keyword data, backlinks from real businesses, a Google Search Console audit, CMS publishing, content calendar, social repurposing and direct social posting, Google Business Profile management (live reviews, public replies, Google posts), Microworkers campaign management, and analytics.
 
 ## Quick Start
 
