@@ -1,6 +1,6 @@
 # Distribb SEO Audit Playbook
 
-A full SEO audit, run from Distribb's own data and a live crawl. This is step one of real SEO. Run it before writing any article for an existing site. It works on **every plan, including Free** (it needs the website, and ideally a connected Google Search Console).
+A full SEO audit, run from Distribb's own data and a live crawl. This is step one of real SEO. Run it before writing any article for an existing site. It works on **every plan** (it needs the website, and ideally a connected Google Search Console).
 
 **Command:** `/gsc-audit <domain>` (or just say "audit my site").
 

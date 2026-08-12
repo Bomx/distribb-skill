@@ -34,6 +34,10 @@ Usage:
   python distribb_cli.py internal-links:get --project-id 42 --keyword "crm software"
   python distribb_cli.py integrations:list --project-id 42
   python distribb_cli.py search-console:get --project-id 42 --days 28
+  python distribb_cli.py ai-visibility:get --project-id 42 --view summary
+  python distribb_cli.py ai-visibility:prompts:add --project-id 42 --prompt "best pickleball paddle australia" --prompt "best pickleball paddle for beginners"
+  python distribb_cli.py ai-visibility:scan --project-id 42
+  python distribb_cli.py projects:update --project-id 42 --primary-location "Sydney, New South Wales, Australia"
   python distribb_cli.py gbp:status --project-id 42
   python distribb_cli.py gbp:reviews --project-id 42 --unreplied
   python distribb_cli.py gbp:reply --project-id 42 --review-id "accounts/.../reviews/AbFvOq..." --message "Thanks Sarah!"
@@ -218,6 +222,42 @@ def cmd_admin_articles_update(args):
     print(json.dumps(api('PUT', f'/api/v1/admin/articles/{args.article_id}', json_data=data), indent=2))
 
 
+def _admin_lander_body(args):
+    data = {}
+    for flag in ('title', 'meta_title', 'meta_description', 'meta_keywords',
+                 'canonical_url', 'schema', 'meta_image'):
+        v = getattr(args, flag, None)
+        if v is not None:
+            data[flag] = None if v == 'null' else v
+    if getattr(args, 'content', None) is not None:
+        data['content'] = args.content
+    if getattr(args, 'content_file', None):
+        with open(args.content_file) as f:
+            data['content'] = f.read()
+    if getattr(args, 'schema_file', None):
+        with open(args.schema_file) as f:
+            data['schema'] = f.read()
+    if getattr(args, 'json', None):
+        data.update(json.loads(args.json))
+    return data
+
+
+def cmd_admin_landers_list(args):
+    print(json.dumps(api('GET', '/api/v1/admin/landers'), indent=2))
+
+
+def cmd_admin_landers_get(args):
+    print(json.dumps(api('GET', f'/api/v1/admin/landers/{args.slug}'), indent=2))
+
+
+def cmd_admin_landers_update(args):
+    data = _admin_lander_body(args)
+    if not data:
+        print(json.dumps({"error": "Nothing to update. Pass flags, --content-file, --schema-file, or --json '{...}'."}))
+        sys.exit(1)
+    print(json.dumps(api('PUT', f'/api/v1/admin/landers/{args.slug}', json_data=data), indent=2))
+
+
 def cmd_admin_articles_sync(args):
     print(json.dumps(api('POST', f'/api/v1/admin/articles/{args.article_id}/sync'), indent=2))
 
@@ -269,6 +309,7 @@ def cmd_projects_update(args):
     # Explicit flags take precedence over --json/--set for the same key.
     if args.ai_instructions is not None: data['ai_instructions'] = args.ai_instructions
     if args.business_description is not None: data['business_description'] = args.business_description
+    if getattr(args, 'primary_location', None) is not None: data['primary_location'] = args.primary_location
     if args.publish_time is not None: data['publish_time'] = args.publish_time
     if args.timezone is not None: data['timezone'] = args.timezone
     if args.backlinks_network is not None:
@@ -373,6 +414,32 @@ def cmd_search_console(args):
     if args.days: params['days'] = args.days
     if args.limit: params['limit'] = args.limit
     print(json.dumps(api('GET', '/api/v1/search-console', params=params), indent=2))
+
+
+def cmd_ai_visibility_get(args):
+    params = {'project_id': args.project_id, 'view': args.view}
+    if args.page: params['page'] = args.page
+    if args.per_page: params['per_page'] = args.per_page
+    print(json.dumps(api('GET', '/api/v1/ai-visibility', params=params), indent=2))
+
+
+def cmd_ai_visibility_scan(args):
+    print(json.dumps(api('POST', '/api/v1/ai-visibility/scan',
+                         json_data={'project_id': args.project_id}), indent=2))
+
+
+def cmd_ai_visibility_prompts_add(args):
+    # --prompt is repeatable so a whole client's buyer-query set lands in one call.
+    results = []
+    for text in (args.prompt or []):
+        results.append(api('POST', '/api/v1/ai-visibility/prompts',
+                           json_data={'project_id': args.project_id, 'prompt': text}))
+    print(json.dumps(results[0] if len(results) == 1 else results, indent=2))
+
+
+def cmd_ai_visibility_prompts_remove(args):
+    print(json.dumps(api('DELETE', '/api/v1/ai-visibility/prompts',
+                         json_data={'project_id': args.project_id, 'prompt': args.prompt}), indent=2))
 
 
 def cmd_gbp_status(args):
@@ -615,6 +682,28 @@ def main():
     p.add_argument('--article-id', type=int, required=True)
     p.set_defaults(func=cmd_admin_articles_sync)
 
+    p = sub.add_parser('admin:landers:list', help='ADMIN: list every landing page whose copy lives in the database')
+    p.set_defaults(func=cmd_admin_landers_list)
+
+    p = sub.add_parser('admin:landers:get', help='ADMIN: read one landing page (full body + meta + schema)')
+    p.add_argument('--slug', type=str, required=True)
+    p.set_defaults(func=cmd_admin_landers_get)
+
+    p = sub.add_parser('admin:landers:update', help='ADMIN: edit a landing page. Live immediately, no deploy.')
+    p.add_argument('--slug', type=str, required=True, help='Lander slug (NOT changeable: it is the public URL)')
+    p.add_argument('--title', type=str)
+    p.add_argument('--content', type=str)
+    p.add_argument('--content-file', type=str, help='Path to an HTML file to use as the page body')
+    p.add_argument('--meta-title', type=str)
+    p.add_argument('--meta-description', type=str)
+    p.add_argument('--meta-keywords', type=str)
+    p.add_argument('--canonical-url', type=str)
+    p.add_argument('--schema', type=str, help='JSON-LD string. Rejected unless it parses as JSON.')
+    p.add_argument('--schema-file', type=str, help='Path to a JSON-LD file')
+    p.add_argument('--meta-image', type=str, help='Absolute URL for og:image / twitter:image')
+    p.add_argument('--json', type=str, help='Raw JSON body for full control')
+    p.set_defaults(func=cmd_admin_landers_update)
+
     p = sub.add_parser('articles:delete', help='Delete a Draft or Planned article')
     p.add_argument('--article-id', type=int, required=True)
     p.set_defaults(func=cmd_articles_delete)
@@ -627,6 +716,7 @@ def main():
     p.add_argument('--project-id', type=int, required=True)
     p.add_argument('--ai-instructions', type=str, help='Customize Article Instructions text')
     p.add_argument('--business-description', type=str)
+    p.add_argument('--primary-location', type=str, help='Client market as "City, Region, Country". Localizes AI Visibility scans + local articles')
     p.add_argument('--publish-time', type=str, help='24-hour HH:MM, e.g. 09:00')
     p.add_argument('--timezone', type=str, help='IANA name, e.g. Europe/Madrid')
     p.add_argument('--backlinks-network', type=str, choices=['yes', 'no', 'true', 'false', 'on', 'off'], help='Join/leave the backlink exchange network')
@@ -717,6 +807,30 @@ def main():
     p.add_argument('--days', type=int, help='Lookback window in days (default 28, max 90)')
     p.add_argument('--limit', type=int, help='Rows per list (default 25, max 100)')
     p.set_defaults(func=cmd_search_console)
+
+    p = sub.add_parser('ai-visibility:get', help="Read a project's AI-search visibility (score, share-of-voice, per-engine citation status, tracked prompts, cited pages)")
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--view', type=str, default='summary',
+                   choices=['summary', 'prompts', 'competitors', 'cited_pages'],
+                   help='summary (default) | prompts | competitors | cited_pages')
+    p.add_argument('--page', type=int, help='Page number (only for --view prompts)')
+    p.add_argument('--per-page', type=int, help='Rows per page (only for --view prompts)')
+    p.set_defaults(func=cmd_ai_visibility_get)
+
+    p = sub.add_parser('ai-visibility:scan', help='Queue an on-demand AI-visibility scan (shares the per-project daily scan cap with the dashboard + Agent)')
+    p.add_argument('--project-id', type=int, required=True)
+    p.set_defaults(func=cmd_ai_visibility_scan)
+
+    p = sub.add_parser('ai-visibility:prompts:add', help='Track your own buyer-query prompt(s). Repeat --prompt for bulk. Up to 25 tracked per project.')
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--prompt', type=str, action='append', required=True,
+                   help='A real buyer query, e.g. "best pickleball paddle australia" (repeatable)')
+    p.set_defaults(func=cmd_ai_visibility_prompts_add)
+
+    p = sub.add_parser('ai-visibility:prompts:remove', help='Stop tracking a prompt (soft-delete; past results are kept)')
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--prompt', type=str, required=True)
+    p.set_defaults(func=cmd_ai_visibility_prompts_remove)
 
     p = sub.add_parser('gbp:status', help="Google Business Profile connection + live review summary")
     p.add_argument('--project-id', type=int, required=True)

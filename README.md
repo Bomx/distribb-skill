@@ -21,7 +21,7 @@ No installation required for the API. The skill uses `curl` and `jq`. The first 
 1. Sign up and complete onboarding at [distribb.io](https://distribb.io) (Distribb learns the business).
 2. Connect the two things that matter most: the website/CMS and Google Search Console.
 3. Confirm the site has a blog to publish to.
-4. **Audit the site before writing anything** (`/gsc-audit`). Available on every plan, including Free.
+4. **Audit the site before writing anything** (`/gsc-audit`). Available on every plan.
 5. Plan topic clusters, then do keyword research to fill them.
 6. Write and publish, always including 1-2 backlink-exchange links.
 7. Optimize pages stuck on page 2+ using GSC data (`/optimize`).
@@ -52,12 +52,13 @@ Command files live in `commands/`. If they are not auto-registered by your insta
 
 | Plan | Keyword data | Backlinks | Who writes |
 |------|---|---|---|
-| **Free Agentic** ($0/mo) | Bring your own DataForSEO **or** Ahrefs key | **1 backlink/month** | You (the agent) |
 | **Agentic Mode** ($49/mo, 3-day trial) | Distribb-provided | **Unlimited** exchange | You (the agent) |
-| **Pro** | Distribb-provided | Unlimited exchange | Distribb writes + publishes for you |
+| **Pro** ($97/mo) | Distribb-provided | Unlimited exchange | Distribb writes + publishes for you |
 | **Accelerator** | Distribb-provided | Unlimited exchange | You + done-for-you AI-search distribution |
 
-Every plan, including Free, can run the audit and use the content calendar. See [`references/plans-and-backlinks.md`](./references/plans-and-backlinks.md) for full detail. Current pricing is at [distribb.io](https://distribb.io).
+The free Agentic plan ($0/mo) is deprecated and no longer offered to new users. Current plans are Agentic Mode at $49/month and Pro at $97/month.
+
+Every plan can run the audit and use the content calendar. See [`references/plans-and-backlinks.md`](./references/plans-and-backlinks.md) for full detail. Current pricing is at [distribb.io](https://distribb.io).
 
 ## Commands (raw API)
 
@@ -75,7 +76,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   "https://distribb.io/api/v1/search-console?project_id=42&days=90&limit=100" | jq .
 
 # Keyword research
-# Free Agentic plan: returns HTTP 402 with `error: "byo_keys_required"` until
+# Legacy Free Agentic accounts: returns HTTP 402 with `error: "byo_keys_required"` until
 # the user saves their own DataForSEO or Ahrefs API key in Settings.
 curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   -H "Content-Type: application/json" \
@@ -147,13 +148,13 @@ Real SEO starts with an audit, not with publishing. `/gsc-audit <domain>` (or [`
 
 ## Backlink Exchange
 
-Distribb connects real businesses that exchange backlinks. When your article includes a link to a network partner, Distribb detects it on submission and credits your project. More given = more received. Free plans receive 1 backlink/month; paid plans get unlimited exchange access. These are high-DR links from legitimate business websites.
+Distribb connects real businesses that exchange backlinks. When your article includes a link to a network partner, Distribb detects it on submission and credits your project. More given = more received. Every current plan gets unlimited exchange access; legacy Free Agentic accounts receive 1 backlink/month. These are high-DR links from legitimate business websites.
 
-## Bring-Your-Own-Keys (Free Agentic plan)
+## Bring-Your-Own-Keys (legacy Free Agentic accounts)
 
-The Free Agentic plan does not bundle keyword data. Users save their own **DataForSEO** or **Ahrefs** API keys at [distribb.io/settings#seo-keys](https://distribb.io/settings#seo-keys). All other endpoints (articles, integrations, backlinks, audit) work normally without any keys.
+The free Agentic plan is deprecated and no longer offered to new users. Accounts still on it do not bundle keyword data, so those users save their own **DataForSEO** or **Ahrefs** API keys at [distribb.io/settings#seo-keys](https://distribb.io/settings#seo-keys). All other endpoints (articles, integrations, backlinks, audit) work normally without any keys.
 
-When `/api/v1/keywords/search` is called by a Free Agentic user with no keys saved, the response is HTTP 402 with `"error": "byo_keys_required"` and an `instructions_for_agent` string. Surface that string to the user verbatim and do not retry until they have saved credentials.
+When `/api/v1/keywords/search` is called from a legacy Free Agentic account with no keys saved, the response is HTTP 402 with `"error": "byo_keys_required"` and an `instructions_for_agent` string. Surface that string to the user verbatim and do not retry until they have saved credentials.
 
 ## Microworkers Campaign Management
 
@@ -183,7 +184,7 @@ The skill works fully with `curl` + `jq` (no install). These Python helpers ship
 
 | File | What it is |
 |---|---|
-| `distribb_cli.py` | A thin CLI over the same API (`projects:list`, `articles:create`, `keywords:search`, `suggestions:list`, etc.). `pip install requests python-dotenv`, then `export DISTRIBB_API_KEY=...`. |
+| `distribb_cli.py` | A thin CLI over the same API (`projects:list`, `articles:create`, `keywords:search`, `suggestions:list`, `ai-visibility:get`, `ai-visibility:prompts:add`, etc.). `pip install requests python-dotenv`, then `export DISTRIBB_API_KEY=...`. |
 | `distribb_research.py` | A standalone original-data research pipeline (plan -> scrape -> analyze) that produces a sourced hook + data table to weave into articles. Uses your own AI key; never invents data. |
 | `distribb_writer.py` | A reference implementation showing how to write an SEO article locally with your own AI and submit it via the API. Meant to be modified or swapped out. |
 | `news_topics.py` | Used by `/news-writer`. A stdlib-only Google News RSS scraper (no API key, no install) that surfaces fresh, recent headlines for a niche and writes `news_topics_export.csv` next to itself. |

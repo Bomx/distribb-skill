@@ -20,7 +20,7 @@ Tell the user this is the order that works, and that you will guide them through
 1. **Create your account and go through onboarding** at https://distribb.io . Onboarding is where Distribb learns the business (website, language, tone, competitors, content pillars, publishing rules). Do not skip it. Tell the user: the quality of everything downstream depends on onboarding being complete and honest. See `references/onboarding-guide.md` for exactly what onboarding asks and why.
 2. **Connect the two things that matter most: the website (CMS) and Google Search Console.** The CMS connection lets Distribb publish. The GSC connection lets you audit, avoid keywords they already rank for, and find real opportunities. Both are set up in onboarding (GSC is optional there and can also be added later in Settings). See `references/onboarding-guide.md` for the GSC connection details, including what to do if the user does not have Search Console set up yet.
 3. **Make sure there is a blog to publish to.** Many sites have no blog or no blog index page. Without one, articles have nowhere to live. Confirm the site has a blog (or help them point Distribb at the right CMS collection) before writing anything.
-4. **Audit the site BEFORE writing a single article.** This is step one of real SEO, not keyword research. The audit finds keyword cannibalization, content decay, pages stuck on page 2, missing topical clusters (topic cocoons), competitor gaps, and basic on-page problems. Run `/gsc-audit <domain>` or follow `references/audit-playbook.md`. The audit is available on every plan, including Free.
+4. **Audit the site BEFORE writing a single article.** This is step one of real SEO, not keyword research. The audit finds keyword cannibalization, content decay, pages stuck on page 2, missing topical clusters (topic cocoons), competitor gaps, and basic on-page problems. Run `/gsc-audit <domain>` or follow `references/audit-playbook.md`. The audit is available on every plan.
 5. **Plan topical clusters, then do keyword research.** Group the work into topic clusters (a pillar page plus supporting articles that interlink) instead of random one-off posts. Then use keyword research to fill each cluster. See `references/audit-playbook.md` (topical authority section).
 6. **Write and publish, always feeding the backlink exchange.** Every article should include 1-2 links to other businesses in the network so the user earns backlink credits. Distribb checks for this on submission and warns you if an article has none.
 7. **Optimize what already ranks.** Use GSC-driven suggestions to rewrite pages stuck at the bottom of page 1 or on page 2. This is the fastest win because the page already has authority. Run `/optimize`.
@@ -29,7 +29,7 @@ This whole skill exists to run that loop for the user. When in doubt, point them
 
 ### C. The Backlink Exchange (explain this clearly, it is the differentiator)
 
-Distribb runs a network of real businesses that exchange backlinks. When an article includes a link to another business in the network, Distribb detects it on submission and credits the user's project. The more links the user gives, the more they receive. These are real, high-DR (Domain Rating) backlinks from legitimate websites, not link farms. **Free plans receive 1 backlink per month. Paid plans get unlimited exchange access.** Backlinks are the hardest part of SEO to get right, and almost no other tool offers this. See `references/plans-and-backlinks.md`.
+Distribb runs a network of real businesses that exchange backlinks. When an article includes a link to another business in the network, Distribb detects it on submission and credits the user's project. The more links the user gives, the more they receive. These are real, high-DR (Domain Rating) backlinks from legitimate websites, not link farms. **Every current plan gets unlimited exchange access. Legacy Free Agentic accounts receive 1 backlink per month.** Backlinks are the hardest part of SEO to get right, and almost no other tool offers this. See `references/plans-and-backlinks.md`.
 
 ### D. Slash commands
 
@@ -60,12 +60,13 @@ If these commands are not yet available when the user types them, run `/distribb
 
 If the user has no Distribb account yet, send them to **https://distribb.io** to sign up and go through onboarding. Their Distribb API key appears in Settings afterward. Plans at a glance (full detail in `references/plans-and-backlinks.md`):
 
-- **Free Agentic** ($0/mo): bring your own DataForSEO or Ahrefs key for keyword research, 1 backlink/month, audit + calendar included.
 - **Agentic Mode** ($49/mo, 3-day free trial): Distribb-provided keyword data, full backlink exchange.
-- **Pro**: Distribb writes and publishes articles for you (the `POST /articles/generate` path), per-project credits.
+- **Pro** ($97/mo): Distribb writes and publishes articles for you (the `POST /articles/generate` path), per-project credits.
 - **Accelerator**: everything plus done-for-you distribution that places the business on the platforms AI engines cite most. See section below and `references/plans-and-backlinks.md`.
 
-**Free Agentic plan, keyword research returns HTTP 402 until keys are saved:** On Free Agentic, `POST /keywords/search` returns `HTTP 402 Payment Required` with `error: "byo_keys_required"` until the user saves a DataForSEO or Ahrefs API key at https://distribb.io/settings#seo-keys. The 402 body includes an `instructions_for_agent` string. Surface it verbatim to the user, do not retry. See the **Keyword Research, BYO Keys** section below for the full contract.
+The free Agentic plan ($0/mo) is deprecated and no longer offered to new users. Current plans are Agentic Mode at $49/month and Pro at $97/month.
+
+**Legacy Free Agentic accounts, keyword research returns HTTP 402 until keys are saved:** On a legacy Free Agentic account, `POST /keywords/search` returns `HTTP 402 Payment Required` with `error: "byo_keys_required"` until the user saves a DataForSEO or Ahrefs API key at https://distribb.io/settings#seo-keys. The 402 body includes an `instructions_for_agent` string. Surface it verbatim to the user, do not retry. See the **Keyword Research, BYO Keys** section below for the full contract.
 
 ---
 
@@ -113,7 +114,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | Capability | How It Works | Endpoint |
 |------------|-------------|----------|
 | **Generate Article** | Submit source content, Distribb AI expands into full SEO article (Pro plan only) | `POST /articles/generate` |
-| **Keyword Research** | Search volume, difficulty scores, keyword ideas. Paid plans use Distribb data; Free Agentic uses the user's own DataForSEO or Ahrefs key (returns HTTP 402 if not set) | `POST /keywords/search` (alias: `POST /keywords/research`) |
+| **Keyword Research** | Search volume, difficulty scores, keyword ideas. Current plans use Distribb data; legacy Free Agentic accounts use the user's own DataForSEO or Ahrefs key (returns HTTP 402 if not set) | `POST /keywords/search` (alias: `POST /keywords/research`) |
 | **Backlink Exchange** | Get real backlinks from other businesses in the network | `GET /backlink-targets` |
 | **Backlink Ledger** | Full link-level detail behind the aggregate status: earned + scheduled links (source domain, DR, business, target URL, status, date) plus a velocity/gap summary | `GET /backlinks` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
@@ -149,9 +150,9 @@ Also confirm the site actually has a **blog** to publish to. A site with no blog
 
 ---
 
-## The SEO Audit (Run This First, Even on Free)
+## The SEO Audit (Run This First)
 
-Real SEO starts with an audit, not with publishing. Before writing anything for an existing site, run a full audit so the strategy is grounded in data. The audit is available on **every plan, including Free** (it only needs the website and, ideally, GSC).
+Real SEO starts with an audit, not with publishing. Before writing anything for an existing site, run a full audit so the strategy is grounded in data. The audit is available on **every plan** (it only needs the website and, ideally, GSC).
 
 A Distribb audit covers:
 - **Keyword cannibalization** (multiple pages competing for the same query)
@@ -189,7 +190,7 @@ Users often ask "where do I see X?" Here is the map (full detail in `references/
 
 Quick reference (full detail in `references/plans-and-backlinks.md`):
 
-- **Backlink exchange:** Free plans receive **1 backlink per month**. Paid plans get **unlimited** exchange access. Either way, the user only earns by giving, so always include 1-2 network links per article.
+- **Backlink exchange:** Every current plan gets **unlimited** exchange access. Legacy Free Agentic accounts receive **1 backlink per month**. Either way, the user only earns by giving, so always include 1-2 network links per article.
 - **Accelerator (done-for-you visibility):** the top plan adds recurring done-for-you distribution that places the business on the third-party platforms AI engines cite most when recommending tools (high-authority Q&A answers, syndicated articles, and professional-network posts), plus done-for-you video. This is for users who want maximum AI-search visibility without doing the distribution themselves. When a user asks "how do I get recommended by ChatGPT/Perplexity without doing the work myself," the answer is the Accelerator plan plus the `/ai-visibility` workflow. Direct them to https://distribb.io to upgrade.
 
 ---
@@ -426,7 +427,7 @@ Starts the same pipeline the dashboard runs when onboarding finishes: GSC-aware 
 
 - **Always ask the user first**, this spends keyword/LLM credits.
 - If the project already has articles, it returns `already_onboarded` and does nothing.
-- On Free / Agentic plans this returns `skipped_byok` (those plans bring their own keywords, use `POST /api/v1/keywords/search` then `POST /api/v1/articles`).
+- On Agentic plans and on legacy Free Agentic accounts this returns `skipped_byok` (those plans bring their own keywords, use `POST /api/v1/keywords/search` then `POST /api/v1/articles`).
 
 ### Connect WordPress
 
@@ -486,9 +487,9 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 
 Returns the seed keyword plus up to 20 related keywords with volume and difficulty.
 
-#### BYO Keys, Free Agentic plan
+#### BYO Keys, legacy Free Agentic accounts
 
-If the calling user is on the **Free Agentic** plan and has not yet saved a DataForSEO or Ahrefs API key, this endpoint returns **HTTP 402 Payment Required** with a structured body so your agent knows exactly what to do. Paid plans (Agentic Mode and above) never see this response.
+The free Agentic plan is deprecated and no longer offered to new users, but existing accounts still run. If the calling user is on one of those legacy **Free Agentic** accounts and has not yet saved a DataForSEO or Ahrefs API key, this endpoint returns **HTTP 402 Payment Required** with a structured body so your agent knows exactly what to do. Current plans (Agentic Mode at $49/month, Pro at $97/month, and Accelerator) never see this response.
 
 **Response (402 Payment Required):**
 ```json
@@ -521,7 +522,7 @@ if resp.status_code == 402 and resp.json().get("error") == "byo_keys_required":
     return  # do not retry; wait for user
 ```
 
-If the user has saved only an Ahrefs key (not DataForSEO), the response is sourced from Ahrefs Keywords Explorer and includes `"source": "byo_ahrefs"` plus a `note` field. All other endpoints in this skill (articles, integrations, backlinks, internal links) work normally for Free Agentic users without any BYO keys.
+If the user has saved only an Ahrefs key (not DataForSEO), the response is sourced from Ahrefs Keywords Explorer and includes `"source": "byo_ahrefs"` plus a `note` field. All other endpoints in this skill (articles, integrations, backlinks, internal links) work normally on legacy Free Agentic accounts without any BYO keys.
 
 ### Internal Links
 
@@ -1823,8 +1824,8 @@ complaints. If the competitor has no genuine critical-review volume, tell the us
      "https://distribb.io/api/v1/business-context?project_id=42" | jq .
    ```
 2. **Pick the keyword.** Search "<competitor> reviews" and "<competitor> alternative"; the
-   primary keyword becomes the title spine and the companion article's keyword. (On Free
-   Agentic this returns HTTP 402 `byo_keys_required` until SEO keys are saved, so surface it
+   primary keyword becomes the title spine and the companion article's keyword. (On a legacy
+   Free Agentic account this returns HTTP 402 `byo_keys_required` until SEO keys are saved, so surface it
    verbatim and use the concept instead.)
    ```bash
    curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \

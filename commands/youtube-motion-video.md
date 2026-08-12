@@ -34,7 +34,7 @@ voice, the SEO packaging, the publish path). Then run this workflow against
 3. **Pick the target keyword (the SEO step).** `POST /api/v1/keywords/search` on the
    concept and `GET /api/v1/search-console` for striking-distance queries. Choose ONE
    winnable, on-brand primary keyword. It becomes the concept, the title spine, and the
-   companion article's keyword. On Free Agentic, if `keywords/search` returns HTTP 402
+   companion article's keyword. On a legacy Free Agentic account, if `keywords/search` returns HTTP 402
    `byo_keys_required`, surface the message verbatim and use GSC + the concept instead.
 
 4. **Script the docu VO.** Write the "In a Nutshell" narration (open on a question,

@@ -10,15 +10,16 @@ For current exact pricing, point users to https://distribb.io . Sign-up and onbo
 
 | Plan | Keyword data | Backlink exchange | Who writes | Best for |
 |------|--------------|-------------------|------------|----------|
-| **Free Agentic** ($0/mo) | Bring your own DataForSEO or Ahrefs key | **1 backlink / month** | You (the agent) | Trying the workflow; technical users with their own SEO keys |
 | **Agentic Mode** ($49/mo, 3-day trial) | Distribb-provided | **Unlimited** exchange access | You (the agent) | The default paid agentic plan |
-| **Pro** | Distribb-provided | Unlimited exchange access | Distribb writes + publishes for you (`POST /articles/generate`) | Users who want Distribb to generate articles end-to-end |
+| **Pro** ($97/mo) | Distribb-provided | Unlimited exchange access | Distribb writes + publishes for you (`POST /articles/generate`) | Users who want Distribb to generate articles end-to-end |
 | **Accelerator** | Distribb-provided | Unlimited exchange access | You + Distribb, plus done-for-you distribution | Maximum AI-search visibility, hands-off |
 
-Every plan, including Free, can run the **SEO audit** and use the **content calendar**. The audit only needs the website and (ideally) a connected Google Search Console.
+The free Agentic plan ($0/mo) is deprecated and no longer offered to new users. Current plans are Agentic Mode at $49/month and Pro at $97/month. Accounts still sitting on the old free plan keep working, and keyword research on them still needs the user's own DataForSEO or Ahrefs key.
+
+Every plan can run the **SEO audit** and use the **content calendar**. The audit only needs the website and (ideally) a connected Google Search Console.
 
 What is gated:
-- **Keyword research** on Free Agentic requires the user's own DataForSEO or Ahrefs key (returns HTTP 402 until saved at https://distribb.io/settings#seo-keys). Paid plans include Distribb-provided keyword data.
+- **Keyword research** is included on every current plan, using Distribb-provided keyword data. On a legacy Free Agentic account it still requires the user's own DataForSEO or Ahrefs key and returns HTTP 402 until one is saved at https://distribb.io/settings#seo-keys.
 - **`POST /articles/generate`** (Distribb writes the article from the user's source notes) is a Pro feature. On Agentic plans, you the agent write the article and submit it with `POST /articles`.
 - **Done-for-you distribution and video** are Accelerator-only (see below).
 
@@ -36,9 +37,9 @@ Distribb runs a network of real businesses that link to each other. It is the ha
 3. On submission (`POST /articles`), Distribb scans the HTML, detects the network links, and credits the project (+1 credit per backlink given).
 4. The more the user gives, the more they receive. Articles with no network links earn nothing, and the create response returns a `backlinks_warning` so you can fix it.
 
-**Free vs paid:**
-- **Free plans receive 1 backlink per month.**
-- **Paid plans (Agentic Mode, Pro, Accelerator) get unlimited exchange access.**
+**Exchange access:**
+- **Every current plan (Agentic Mode, Pro, Accelerator) gets unlimited exchange access.**
+- Legacy Free Agentic accounts receive 1 backlink per month.
 
 Either way the rule is the same: the user only receives by giving. Always include network links. Check standing anytime with `GET /backlinks/status?project_id=...` (credits + counts). The dashboard Backlinks page shows the same data. Join/leave the network with the `backlinks_network` toggle (`PUT /projects/:id`), though leaving means no more received links.
 

@@ -39,8 +39,8 @@ Never push anything but the connected project's own business.
    name a competitor, offer the ones in `business_context.competitors`.
 3. **Pick the keyword (the SEO step).** `POST /api/v1/keywords/search` on "<competitor> reviews"
    and "<competitor> alternative"; `GET /api/v1/search-console` for related striking-distance
-   queries. The primary keyword becomes the title spine + the companion article's keyword. On
-   Free Agentic, if `keywords/search` returns HTTP 402 `byo_keys_required`, surface it verbatim
+   queries. The primary keyword becomes the title spine + the companion article's keyword. On a
+   legacy Free Agentic account, if `keywords/search` returns HTTP 402 `byo_keys_required`, surface it verbatim
    and use the concept + GSC instead.
 4. **Research + verify + produce** with super-video-maker's `REVIEW_VIDEO_PLAYBOOK.md`: fan out
    across every review surface (Trustpilot, G2/Capterra, app stores, Reddit/forums, review blogs,

@@ -18,7 +18,7 @@ Where the user sees and manages every article: Planned, Draft, and Published, pl
 - Delete a Draft/Planned article: `DELETE /articles/:id` (published articles cannot be deleted).
 
 ## Settings
-Where the user edits the project: business description, custom AI instructions, daily publish time, timezone, the backlink-network toggle, and their SEO data API keys (DataForSEO / Ahrefs for the Free Agentic plan, saved at https://distribb.io/settings#seo-keys).
+Where the user edits the project: business description, custom AI instructions, daily publish time, timezone, the backlink-network toggle, and their SEO data API keys (DataForSEO / Ahrefs for legacy Free Agentic accounts, saved at https://distribb.io/settings#seo-keys).
 - Read: `GET /projects/:id` (its `settings` object lists every writable key), `GET /business-context`.
 - Change: `PUT /projects/:id`, the full Settings UI (~30 fields: instructions, sitemap/blog URLs, content pillars, tone, writing profile, positioning, internal links, region, language, images/brand, banned phrases, competitors, toggles, publish time/timezone). Send only the keys you want; partial updates are safe. See SKILL.md "Project Settings" for the table.
 - Create + onboard a project: `POST /projects` (gated to paid slots), `POST /projects/:id/wordpress` (connect CMS), `POST /projects/:id/onboarding` (start keyword research, ask the user first).
@@ -32,7 +32,7 @@ Where the user connects their CMS (WordPress, Webflow, Shopify, Ghost, Wix, Noti
 Where the user sees the backlink exchange: links earned, links given, and remaining credits. **You can check all of this for the user, they do not have to open the dashboard.**
 - Credits + status: `GET /backlinks/status?project_id=...`.
 - Who they can link to next: `GET /backlink-targets?project_id=...&keyword=...`.
-- Free plans receive 1 backlink/month; paid plans get unlimited exchange access. The user earns by giving, so every article should include 1-2 network links. See `plans-and-backlinks.md`.
+- Every current plan gets unlimited exchange access; legacy Free Agentic accounts receive 1 backlink/month. The user earns by giving, so every article should include 1-2 network links. See `plans-and-backlinks.md`.
 - Note: links the user *receives* currently surface mainly on the dashboard Backlinks page; `GET /backlinks/status` is the most reliable programmatic read for credits and counts.
 
 ## Optimizations / Suggestions

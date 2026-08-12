@@ -34,7 +34,7 @@ paths). Then run this workflow against `$ARGUMENTS`:
      article types (mistakes / signs, frameworks / checklists, how-tos, data/stat posts).
    - **Keyword**: `POST /api/v1/keywords/search` on the concept and
      `GET /api/v1/search-console?project_id=<id>` for striking-distance queries; pick ONE
-     winnable, on-brand keyword. On Free Agentic, if `keywords/search` returns HTTP 402
+     winnable, on-brand keyword. On a legacy Free Agentic account, if `keywords/search` returns HTTP 402
      `byo_keys_required`, surface the message verbatim and use GSC + the concept instead.
    The chosen keyword becomes the caption keyword and the companion article's keyword.
 

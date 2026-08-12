@@ -14,4 +14,4 @@ Load the Distribb skill and follow `references/audit-playbook.md` exactly. In sh
 4. Deliver the report: executive summary, the nine sections with tables, and a **prioritized action plan** where every finding maps to a Distribb action (`/optimize` for existing pages, `/write-article` for gaps, internal-link fixes).
 5. Offer CSV export and offer to execute the top 3 items now.
 
-The audit works on every plan, including Free.
+The audit works on every plan.

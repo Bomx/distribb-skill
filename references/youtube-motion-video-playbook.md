@@ -88,7 +88,7 @@ Pick ONE primary keyword that is:
 - on-brand (ties back to what the business does).
 
 That keyword becomes the video's concept, its title spine, and the companion
-article's keyword. On the **Free Agentic** plan, `keywords/search` returns HTTP 402
+article's keyword. On a legacy **Free Agentic** account, `keywords/search` returns HTTP 402
 (`byo_keys_required`) until the user saves a DataForSEO or Ahrefs key; surface that
 message verbatim and use GSC + the concept directly instead.
 

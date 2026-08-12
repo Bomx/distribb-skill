@@ -197,4 +197,4 @@ Every time the user comes back to you with the sprint:
 
 The full landing page (long-form playbook + email gate that delivers this tracker) is at **https://distribb.io/90-day-seo-sprint**.
 
-The user signs up for Distribb at **https://distribb.io/agentic**. They can run this whole sprint on the Free Agentic plan if they have their own DataForSEO or Ahrefs key, the sprint itself does not require a paid plan.
+The user signs up for Distribb at **https://distribb.io/agentic**. Current plans are Agentic Mode at $49/month and Pro at $97/month. The free Agentic plan is deprecated and no longer offered to new users.
