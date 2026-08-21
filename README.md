@@ -45,6 +45,7 @@ No installation required for the API. The skill uses `curl` and `jq`. The first 
 | `/instagram-carousel <article-id-or-keyword>` | Turn one article or keyword into a viral, save-driven Instagram carousel (cover hook, one idea per slide, comment-for-link play), publish it, and close the SEO loop with a companion article |
 | `/review-video <competitor>` | Compile REAL, verified competitor reviews into a "<competitor> reviews" video, position your business as the alternative, and publish to YouTube + a companion article |
 | `/gbp` | Google Business Profile manager: live review triage, public review replies, Google posts, post analytics |
+| `/gov-backlinks` | Register your business in the free government directories (SAM.gov, the SBA small business listing, state vendor portals) for real .gov profile backlinks |
 
 Command files live in `commands/`. If they are not auto-registered by your installer, run `/distribb-setup` or copy `commands/*.md` into your project's `.claude/commands/` folder.
 
@@ -170,6 +171,7 @@ Distribb can create/register project-scoped Microworkers Basic Campaigns, list w
 | [`references/plans-and-backlinks.md`](./references/plans-and-backlinks.md) | Plans, the backlink exchange, and the Accelerator |
 | [`references/statistics-page-playbook.md`](./references/statistics-page-playbook.md) | How `/statistics-page-writer` deep-researches and builds a journalist-ready statistics page |
 | [`references/youtube-motion-video-playbook.md`](./references/youtube-motion-video-playbook.md) | How `/youtube-motion-video` makes a motion-collage explainer with the super-video-maker skill, YouTube-SEOs it, and publishes it to the connected YouTube channel |
+| [`references/gov-backlinks-playbook.md`](./references/gov-backlinks-playbook.md) | How `/gov-backlinks` drives the browser through SAM.gov and the other government registries, the wizard answers and traps, and the account/tax/certification steps that always stay with the user |
 | [`references/instagram-carousel-playbook.md`](./references/instagram-carousel-playbook.md) | How `/instagram-carousel` turns a Distribb article/keyword into a save-driven Instagram carousel for SEO: the Carousel Maker JSON contract, cover/hook system, design specs, the comment-for-link play, rendering, and the publish paths |
 
 ## Sub-skills

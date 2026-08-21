@@ -53,6 +53,7 @@ This skill ships ready-to-use slash commands so the user can drive the whole wor
 | `/review-video <competitor>` | Compile REAL, verified reviews of a competitor into a faceless "<competitor> reviews" video, position the connected project's own business as the alternative, append the project's own testimonials, and publish to YouTube + a companion article |
 | `/gbp` | Google Business Profile manager: live review triage, draft + post public review replies, queue Google Business posts, post analytics |
 | `/link-outreach` | Work your backlink outreach replies: see which listicle authors replied (and their asking price), draft and send in-thread replies from Distribb's inbox (Accelerator) |
+| `/gov-backlinks` | Register the business in free government directories (SAM.gov, the SBA small business listing, state vendor portals) by driving the user's browser, for real .gov profile backlinks |
 
 If these commands are not yet available when the user types them, run `/distribb-setup` (or copy this skill's `commands/*.md` into the project's `.claude/commands/` folder) to register them. See the **Slash Commands** section below.
 
@@ -1709,6 +1710,23 @@ Six playbooks, all give-first: you build something the prospect wants and hand i
 
 ---
 
+## Workflow: Free .gov Backlinks (`/gov-backlinks`)
+
+Government supplier registries (SAM.gov feeding SBA's public Small Business Search, plus
+state vendor portals and international equivalents) give a real business a public profile
+page on a .gov domain with a website field. That page is a legitimate, free backlink from
+a real directory, and almost no business claims it.
+
+Run it with `/gov-backlinks` and follow **`references/gov-backlinks-playbook.md`**, which
+carries the exact SAM.gov wizard answers, the DBA documentation trap, browser automation
+notes for SAM's custom form controls, and the hard handoff rules. The agent drives the
+browser through navigation and business-fact form fields only. The user always performs
+account creation, Terms of Use agreement, EIN entry, every certification, and every final
+submit. Registration is free everywhere; anyone charging for it is a middleman.
+
+The listing appears after the registration activates (up to 10 business days) and dies if
+the annual renewal lapses, so log the renewal date wherever the user tracks links.
+
 ## Slash Commands
 
 This skill ships a set of slash commands in its `commands/` folder so the user can drive the whole workflow with `/`. Each command is a thin entry point that loads this skill and the matching reference, then runs the workflow against `$ARGUMENTS`.
@@ -1731,6 +1749,7 @@ This skill ships a set of slash commands in its `commands/` folder so the user c
 | `/gbp` | (optional: `reviews` \| `reply` \| `post` \| `status`) | Google Business Profile manager: review triage, public replies, posts, analytics |
 | `/link-outreach` | (optional: `replies` \| `reply`) | Work backlink outreach replies: review who replied + asking price, draft + send in-thread replies from Distribb's inbox (Accelerator) |
 | `/link-building` | (optional: `invoice` \| `source-sniping` \| `tombstone` \| `fact-decay` \| `screenshots` \| `visuals`) | Run one of six give-first outreach playbooks end to end, from prospecting to a ready-to-send draft with the asset attached (`references/link-building-playbooks.md`) |
+| `/gov-backlinks` | (optional: `sam` \| `state` \| `international` \| `verify`) | Drive the user's browser through the free government registries that give a public .gov profile linking to their site, with hard handoffs at every account, tax, and certification step (`references/gov-backlinks-playbook.md`) |
 
 **Enabling the commands.** Depending on how the skill was installed, the commands may already be live. If a command is not recognized, register them once by copying this skill's command files into the project's command folder:
 
