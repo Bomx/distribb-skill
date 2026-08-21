@@ -1910,3 +1910,19 @@ complaints. If the competitor has no genuine critical-review volume, tell the us
 
 Sign up for Distribb Agentic Mode: **https://distribb.io/agentic**
 3-day free trial, $49/mo. Your API key will be in Settings after signup.
+
+## Using NVIDIA's free API
+
+This skill runs on any OpenAI-compatible endpoint; for NVIDIA's free NIM API see `NVIDIA.md` in this skill directory.
+
+```bash
+export OPENAI_API_KEY=nvapi-...
+export AI_BASE_URL=https://integrate.api.nvidia.com/v1
+export AI_MODEL=meta/llama-3.3-70b-instruct
+export RESEARCH_MODEL=deepseek-ai/deepseek-v4-pro
+export AI_MAX_TOKENS=4000
+export AI_RESEARCH_MAX_TOKENS=4000
+export AI_MAX_RETRIES=5
+```
+
+Set `AI_MAX_TOKENS` when using NVIDIA. Article generation requests 12000 output tokens; `meta/llama-3.3-70b-instruct` accepts that without truncating, but output caps are per-model and several NIM models are far lower. If a model does truncate, the scripts now raise on `finish_reason=length` instead of silently returning half an article. Both clamps default to unset, so behavior is unchanged for OpenAI users.
