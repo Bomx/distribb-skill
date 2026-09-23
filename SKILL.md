@@ -120,7 +120,10 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Backlink Ledger** | Full link-level detail behind the aggregate status: earned + scheduled links (source domain, DR, business, target URL, status, date) plus a velocity/gap summary | `GET /backlinks` |
 | **CMS Publishing** | Publish to WordPress, Webflow, Shopify, Ghost, custom API | `POST /articles/:id/publish` |
 | **Content Calendar** | Schedule articles, track status, manage your pipeline | `GET /articles`, `POST /articles`, `PUT /articles/:id`, `DELETE /articles/:id` |
+| **Article Brief** | Everything one planned article needs: claim window, per-article instructions, committed exchange links, planned internal links, image targets | `GET /articles/:id/brief` |
 | **Feature Image** | Attach a hero image URL to an article (cannot generate one; supply the URL) | `POST /articles`, `PUT /articles/:id` with `feature_image` |
+| **Image Hosting** | Host an image you made or copy a public image URL, get a public URL | `POST /images` |
+| **Page Screenshots** | Screenshot a listicle item's own website (async) | `POST /screenshots` |
 | **Project Settings** | Read & edit the FULL settings surface (~30 fields): instructions, sitemap/blog URLs, content pillars, tone, writing profile, positioning, images/brand, competitors, toggles, publish time/timezone | `GET /projects/:id`, `PUT /projects/:id` |
 | **Create + Onboard Project** | Create a new project (gated to paid slots; returns a buy-a-slot link if over) and optionally start keyword research + first articles. Ask the user before running research. Connect WordPress via API too | `POST /projects`, `POST /projects/:id/onboarding`, `POST /projects/:id/wordpress` |
 | **Internal Linking** | Get your published article URLs to cross-link in new content | `GET /internal-links` |
@@ -229,6 +232,7 @@ curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
 # You MUST include 1-2 URLs from the backlink-targets response as natural references.
 
 # 7. SUBMIT: Save to Distribb's content calendar
+# To write an article Distribb already planned, PUT its content instead (see Claiming Scheduled Articles).
 curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -262,6 +266,64 @@ These rules apply to every article-producing command, helper, and sub-skill. The
 For every edit: GET and save the article as a rollback copy; patch its fetched `Content`; diff and validate the fragment/IDs/TOC/embeds; PUT only changed fields; GET and verify readback. Published articles keep their slug and status: the API freezes the slug and rejects a move back to Draft/Planned. Distribb-hosted posts are live from the database; when a PUT returns `sync_required: true`, call `POST /api/v1/articles/:id/sync` (or resend the PUT with `"sync": true`; the CLI flag is `--sync`). Never republish or create a replacement for an existing live article.
 
 Before publishing, and again on the live URL, inspect desktop and mobile widths. Confirm the sidebar/TOC matches the real headings and every video fills the article column at 16:9. A non-2xx response or failed readback is failure.
+
+---
+
+## You Write the Whole Article: Claiming Scheduled Articles
+
+Distribb's own writer picks up each Planned article 72 hours before its scheduled date (project timezone) and writes it. You can write it yourself instead, which lets you tailor it to everything you know about the business. That is called claiming the article.
+
+**How a claim works**
+- Save 2,000+ characters of finished HTML on a Planned article with `PUT /api/v1/articles/{id}` (`{"content": "...", "title": "...", "meta_description": "...", "feature_image": "..."}`). The response says `"claimed": true`.
+- A claimed article is skipped by every Distribb writer and published **exactly as you saved it** on its scheduled date (or saved as a draft on "Save as Drafts" projects).
+- Claim more than 3 days (72 hours) before the scheduled date. Once Distribb's writer has started an article, the PUT is refused with HTTP 409 `already_being_written`; leave that one to Distribb.
+- Content under 2,000 characters is saved but not claimed (`"claimed": false`, `claim_note`), so Distribb still writes that article on schedule.
+- On Agentic plans Distribb never writes articles, so every Planned article is yours to write, whatever its date.
+
+**Distribb adds nothing to what you save.** No hero image, no screenshots, no internal links, no exchange links, no FAQ, no table of contents. It only rehosts inline `data:` images, removes the owner's banned phrases, credits exchange links it finds, and publishes. You are responsible for all of it:
+- A feature image (landscape, about 1536x1024) and images in the body, each with alt text that says what the picture shows. On a listicle, one screenshot of each ranked item's own website.
+- The exchange partner links the article is committed to carry and the planned internal links, from its brief, each used exactly as given.
+- 1-2 extra partner links from `GET /backlink-targets` if the project is in the exchange, published articles from `GET /internal-links` to reach the per-article link count, at least 2 authority citations, a table of contents, an FAQ, a title under 60 characters and a meta description, following the Mandatory Article HTML Contract above.
+
+**Find articles you can claim**
+```bash
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/articles?project_id=42&status=Planned&scheduled_after=2026-10-05&scheduled_before=2026-10-08" | jq '.articles[] | {ID, MainKeyword, ScheduledDate, claimed, distribb_is_writing}'
+```
+Each row carries `claimed` (finished content is already saved) and `distribb_is_writing` (Distribb's writer has started it). Write the rows where both are false.
+
+**Get the article's brief**
+```bash
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  https://distribb.io/api/v1/articles/123/brief | jq .
+```
+Returns the claim window (`claim.claimable`, `claim.claim_by`), the instructions for this article, the word-count target, `required_links.exchange_partners` (links promised to other businesses: include every one, anchored with the partner's exact business name), `required_links.internal` (the site plan's internal links for this article), the call-to-action URL, image requirements (style, the owner's image instructions, brand colour) and the HTML rules.
+
+**Host images**
+```bash
+# An image you made (base64 or a data: URL), or a public image URL to copy
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"image_base64\": \"$(base64 -i hero.png)\"}" \
+  https://distribb.io/api/v1/images | jq .
+# -> {"url": "https://rebelgrowth.s3.us-east-1.amazonaws.com/blog-images/...", "width": 1536, "height": 1024, ...}
+```
+JPG, PNG, WebP or GIF, 12 MB max. Use the returned URL in `<img src>` and as `feature_image`. Never hotlink or copy images from other sites.
+
+**Screenshot a listicle item's website**
+```bash
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
+  -d '{"url": "https://www.notion.so", "name": "Notion"}' \
+  https://distribb.io/api/v1/screenshots | jq .
+# 202 {"status": "processing", "screenshot_id": "..."}; POST the same url again (or GET /api/v1/screenshots/{id}) after ~20s
+# 200 {"status": "ready", "image_url": "https://..."}   or   422 {"status": "failed", "reason": "..."}
+```
+Screenshots are checked for cookie banners, broken images and the right brand before they are returned. Up to 120 a day per account.
+
+**Optimizations (Search Console driven rewrites)**
+`GET /suggestions?project_id=42&status=pending` lists them, `GET /suggestions/{id}` shows the diagnosis and the before/after, `POST /suggestions/{id}/approve` starts the rewrite (poll until `status` is `ready`), `POST /suggestions/{id}/reject` with `{"reason": "..."}` dismisses one, and `POST /suggestions/{id}/publish` pushes a ready one live. Some rewrites of articles already live on a CMS can only be applied by hand; publish returns an error saying so and changes nothing.
+
+**Onboarding a new customer as their agent**
+For an account that has not finished Distribb's setup wizard, `POST /api/v1/projects` reuses the account's existing onboarding project instead of opening a second one, and starts Distribb's site scan. Poll `GET /api/v1/projects/{id}` until `setup.site_scan` is `completed` (2 to 4 minutes), review and improve the settings with the user, save them with `PUT /api/v1/projects/{id}`, then ask the user before `POST /api/v1/projects/{id}/onboarding`. That call finishes the account's onboarding (the user lands on the dashboard from then on) and starts keyword research and the first articles. It returns 409 `site_scan_running` while the scan is still reading the site; try again in a minute.
 
 ---
 
