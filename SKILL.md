@@ -123,6 +123,7 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Article Brief** | Everything one planned article needs: claim window, per-article instructions, committed exchange links, planned internal links, image targets | `GET /articles/:id/brief` |
 | **Feature Image** | Attach a hero image URL to an article (cannot generate one; supply the URL) | `POST /articles`, `PUT /articles/:id` with `feature_image` |
 | **Image Hosting** | Host an image you made or copy a public image URL, get a public URL | `POST /images` |
+| **Article Plan** | Switch between the article plans the account includes (8 premium, 30, 5 backlinks focused; 60 and 90 on Accelerator) | `POST /projects/:id/article-plan` |
 | **Page Screenshots** | Screenshot a listicle item's own website (async) | `POST /screenshots` |
 | **Project Settings** | Read & edit the FULL settings surface (~30 fields): instructions, sitemap/blog URLs, content pillars, tone, writing profile, positioning, images/brand, competitors, toggles, publish time/timezone | `GET /projects/:id`, `PUT /projects/:id` |
 | **Create + Onboard Project** | Create a new project (gated to paid slots; returns a buy-a-slot link if over) and optionally start keyword research + first articles. Ask the user before running research. Connect WordPress via API too | `POST /projects`, `POST /projects/:id/onboarding`, `POST /projects/:id/wordpress` |
@@ -281,7 +282,7 @@ Distribb's own writer picks up each Planned article 72 hours before its schedule
 - On Agentic plans Distribb never writes articles, so every Planned article is yours to write, whatever its date.
 
 **Distribb adds nothing to what you save.** No hero image, no screenshots, no internal links, no exchange links, no FAQ, no table of contents. It only rehosts inline `data:` images, removes the owner's banned phrases, credits exchange links it finds, and publishes. You are responsible for all of it:
-- A feature image (landscape, about 1536x1024) and images in the body, each with alt text that says what the picture shows. On a listicle, one screenshot of each ranked item's own website.
+- A feature image (landscape, about 1536x1024) and images in the body, each with alt text that says what the picture shows: generated photos or illustrations, or real screenshots, never charts, graphs or SVG drawings. On a listicle, one screenshot of each ranked item's own website.
 - The exchange partner links the article is committed to carry and the planned internal links, from its brief, each used exactly as given.
 - 1-2 extra partner links from `GET /backlink-targets` if the project is in the exchange, published articles from `GET /internal-links` to reach the per-article link count, at least 2 authority citations, a table of contents, an FAQ, a title under 60 characters and a meta description, following the Mandatory Article HTML Contract above.
 
@@ -309,6 +310,16 @@ curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: a
 ```
 JPG, PNG, WebP or GIF, 12 MB max. Use the returned URL in `<img src>` and as `feature_image`. Never hotlink or copy images from other sites.
 
+**Generate images when your app can't**
+If you can't generate images yourself, ask the user for an OpenAI API key (platform.openai.com/api-keys) and use `openai_image_tool.py`, which ships with this skill (also at https://raw.githubusercontent.com/Bomx/distribb-skill/main/openai_image_tool.py):
+```bash
+pip install openai requests
+export OPENAI_API_KEY=sk-...   # the user's own key
+python openai_image_tool.py --upload --prompt "Editorial photo of a potter glazing a bowl in a bright studio, natural light, no text"
+# last line: {"files": [...], "hosted": [{"url": "https://...", "width": 1536, "height": 1024}]}
+```
+It uses gpt-image-2 at 1536x1024. `--reference-image photo.jpg` follows a product or brand photo, and `--upload` hosts the result on Distribb (it uses `DISTRIBB_API_KEY`). Describe a real scene in the project's image style from the brief, ask for no text unless it is a title card, and never put phone numbers, emails or web addresses in an image. Never use charts, graphs or SVG drawings as article images.
+
 **Screenshot a listicle item's website**
 ```bash
 curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
@@ -323,7 +334,7 @@ Screenshots are checked for cookie banners, broken images and the right brand be
 `GET /suggestions?project_id=42&status=pending` lists them, `GET /suggestions/{id}` shows the diagnosis and the before/after, `POST /suggestions/{id}/approve` starts the rewrite (poll until `status` is `ready`), `POST /suggestions/{id}/reject` with `{"reason": "..."}` dismisses one, and `POST /suggestions/{id}/publish` pushes a ready one live. Some rewrites of articles already live on a CMS can only be applied by hand; publish returns an error saying so and changes nothing.
 
 **Onboarding a new customer as their agent**
-For an account that has not finished Distribb's setup wizard, `POST /api/v1/projects` reuses the account's existing onboarding project instead of opening a second one, and starts Distribb's site scan. Poll `GET /api/v1/projects/{id}` until `setup.site_scan` is `completed` (2 to 4 minutes), review and improve the settings with the user, save them with `PUT /api/v1/projects/{id}`, then ask the user before `POST /api/v1/projects/{id}/onboarding`. That call finishes the account's onboarding (the user lands on the dashboard from then on) and starts keyword research and the first articles. It returns 409 `site_scan_running` while the scan is still reading the site; try again in a minute.
+For an account that has not finished Distribb's setup wizard, `POST /api/v1/projects` reuses the account's existing onboarding project instead of opening a second one, and starts Distribb's site scan. Poll `GET /api/v1/projects/{id}` until `setup.site_scan` is `completed` (2 to 4 minutes), review and improve the settings with the user, save them with `PUT /api/v1/projects/{id}`, then ask the user before `POST /api/v1/projects/{id}/onboarding`. That call finishes the account's onboarding (the user lands on the dashboard from then on) and starts keyword research and the first articles. It returns 409 `site_scan_running` while the scan is still reading the site; try again in a minute. Before that, ask which article plan they want: `GET /api/v1/projects/{id}` lists the plans their account includes under `article_plan` (with the recommended one), and `POST /api/v1/projects/{id}/article-plan` with `{"plan": 8}` sets it: 8 premium, 30, or 5 backlinks focused, plus 60 and 90 for Accelerator members. Plans that would cost extra are refused. If you never set one, finishing onboarding applies the same default as the setup wizard.
 
 ---
 
