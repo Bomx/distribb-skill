@@ -48,6 +48,9 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 AI_BASE_URL = os.getenv('AI_BASE_URL')
 AI_MODEL = os.getenv('AI_MODEL', 'gpt-4.1-mini')
 RESEARCH_MODEL = os.getenv('RESEARCH_MODEL') or AI_MODEL
+_raw_research_cap = os.getenv('AI_RESEARCH_MAX_TOKENS', '').strip()
+AI_RESEARCH_MAX_TOKENS = int(_raw_research_cap) if _raw_research_cap else None
+AI_MAX_RETRIES = int(os.getenv('AI_MAX_RETRIES', '3'))
 
 MAX_URLS = int(os.getenv('RESEARCH_MAX_URLS', '12'))
 MAX_QUERIES = int(os.getenv('RESEARCH_MAX_QUERIES', '4'))
@@ -83,28 +86,61 @@ def _get_ai_client():
     return OpenAI(**kwargs)
 
 
-def _ai_call(prompt, system="", model=None, temperature=0.3, max_tokens=4096, retries=2):
+def _ai_call(prompt, system="", model=None, temperature=0.3, max_tokens=4096, retries=None):
     client = _get_ai_client()
     model = model or RESEARCH_MODEL
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
+    if AI_RESEARCH_MAX_TOKENS:
+        max_tokens = min(max_tokens, AI_RESEARCH_MAX_TOKENS)
+    max_attempts = AI_MAX_RETRIES if retries is None else (retries + 1)
 
-    for attempt in range(1, retries + 2):
+    for attempt in range(1, max_attempts + 1):
         try:
             resp = client.chat.completions.create(
                 model=model, messages=messages,
                 temperature=temperature, max_tokens=max_tokens
             )
             text = (resp.choices[0].message.content or "").strip()
+            finish_reason = getattr(resp.choices[0], 'finish_reason', None)
+            if finish_reason == 'length':
+                raise RuntimeError(
+                    f"AI response truncated (finish_reason=length) for model {model}. "
+                    f"Lower AI_RESEARCH_MAX_TOKENS or pick a model with a larger output cap."
+                )
             if text:
                 return text
             logger.warning(f"AI returned empty on attempt {attempt}")
         except Exception as e:
-            logger.warning(f"AI call failed (attempt {attempt}/{retries+1}): {e}")
-            if attempt <= retries:
-                time.sleep(2 * attempt)
+            is_rate_limit = (
+                getattr(e, 'status_code', None) == 429
+                or '429' in str(e)
+                or 'RateLimitError' in type(e).__name__
+            )
+            # Truncation is unrecoverable — do not retry
+            if isinstance(e, RuntimeError) and 'finish_reason=length' in str(e):
+                raise
+            logger.warning(f"AI call failed (attempt {attempt}/{max_attempts}): {e}")
+            if attempt >= max_attempts:
+                raise
+            if is_rate_limit:
+                retry_after = None
+                resp = getattr(e, 'response', None)
+                if resp is not None:
+                    headers = getattr(resp, 'headers', None) or {}
+                    retry_after = headers.get('Retry-After') or headers.get('retry-after')
+                if retry_after is not None:
+                    try:
+                        delay = float(retry_after)
+                    except (TypeError, ValueError):
+                        delay = min(60, 20 * attempt)
+                else:
+                    delay = min(60, 20 * attempt)
+                time.sleep(delay)
+            else:
+                time.sleep(2 ** (attempt - 1))
     return ""
 
 
@@ -131,7 +167,7 @@ def _parse_json(text):
                     return json.loads(m.group())
                 except json.JSONDecodeError:
                     pass
-    return {}
+    raise ValueError(f"Failed to parse JSON from AI: {cleaned[:200]}")
 
 
 # ── Web Search (DuckDuckGo HTML, no API key needed) ──
@@ -270,7 +306,11 @@ PAGE CONTENT:
 JSON array only."""
 
     raw = _ai_call(prompt, temperature=0.05, max_tokens=6000)
-    items = _parse_json(raw)
+    try:
+        items = _parse_json(raw)
+    except ValueError as e:
+        logger.warning(f"Skipping page — unparseable extraction response: {e}")
+        items = []
     if isinstance(items, dict):
         items = [items] if items else []
     elif not isinstance(items, list):

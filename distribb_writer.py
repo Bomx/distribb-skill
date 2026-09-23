@@ -42,6 +42,9 @@ DISTRIBB_API_URL = os.getenv('DISTRIBB_API_URL', 'https://distribb.io').rstrip('
 AI_MODEL = os.getenv('AI_MODEL', 'gpt-4.1-mini')
 AI_BASE_URL = os.getenv('AI_BASE_URL')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+_raw_cap = os.getenv('AI_MAX_TOKENS', '').strip()
+AI_MAX_TOKENS = int(_raw_cap) if _raw_cap else None
+AI_MAX_RETRIES = int(os.getenv('AI_MAX_RETRIES', '3'))
 
 # Hardcoded test parameters (set these to test without CLI args)
 TEST_KEYWORD = "best project management tools for startups"
@@ -73,17 +76,53 @@ def ai_chat(system_prompt: str, user_prompt: str, temperature: float = 0.3,
     }
     if json_mode:
         kwargs['response_format'] = {'type': 'json_object'}
+    if AI_MAX_TOKENS:
+        kwargs['max_tokens'] = min(max_tokens, AI_MAX_TOKENS)
 
-    for attempt in range(3):
+    for attempt in range(AI_MAX_RETRIES):
         try:
             response = client.chat.completions.create(**kwargs)
-            return response.choices[0].message.content.strip()
+            text = response.choices[0].message.content.strip()
+            finish_reason = getattr(response.choices[0], 'finish_reason', None)
+            if finish_reason == 'length':
+                if json_mode:
+                    raise RuntimeError(
+                        f"AI response truncated (finish_reason=length) for model {AI_MODEL}. "
+                        f"Lower AI_MAX_TOKENS or pick a model with a larger output cap."
+                    )
+                logger.warning(
+                    f"AI response truncated (finish_reason=length) for model {AI_MODEL}; "
+                    f"returning partial text."
+                )
+            return text
         except Exception as e:
-            logger.warning(f"AI call attempt {attempt+1} failed: {e}")
-            if attempt < 2:
-                time.sleep(2 ** attempt)
-            else:
+            # Truncation is unrecoverable — do not retry
+            if isinstance(e, RuntimeError) and 'finish_reason=length' in str(e):
                 raise
+            is_rate_limit = (
+                getattr(e, 'status_code', None) == 429
+                or '429' in str(e)
+                or 'RateLimitError' in type(e).__name__
+            )
+            logger.warning(f"AI call attempt {attempt+1} failed: {e}")
+            if attempt >= AI_MAX_RETRIES - 1:
+                raise
+            if is_rate_limit:
+                retry_after = None
+                resp = getattr(e, 'response', None)
+                if resp is not None:
+                    headers = getattr(resp, 'headers', None) or {}
+                    retry_after = headers.get('Retry-After') or headers.get('retry-after')
+                if retry_after is not None:
+                    try:
+                        delay = float(retry_after)
+                    except (TypeError, ValueError):
+                        delay = min(60, 20 * (attempt + 1))
+                else:
+                    delay = min(60, 20 * (attempt + 1))
+                time.sleep(delay)
+            else:
+                time.sleep(2 ** attempt)
     return ""
 
 
@@ -109,8 +148,7 @@ def parse_json_from_ai(text: str) -> dict:
                 return json.loads(match.group())
             except json.JSONDecodeError:
                 pass
-    logger.warning(f"Failed to parse JSON from AI: {text[:200]}...")
-    return {}
+    raise ValueError(f"Failed to parse JSON from AI: {text[:200]}")
 
 
 # ══════════════════════════════════════════════════════════════
