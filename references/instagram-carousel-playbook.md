@@ -269,10 +269,11 @@ delivers the link by DM, where click-through is far higher.
 
 - **Engineer the keyword:** ONE distinctive ALL-CAPS word tied to the offer (GUIDE, AUDIT,
   CHECKLIST, TEMPLATE). Avoid generic short words (HI, YES) that mis-trigger.
-- **Register 2 to 3 misspelling variants** (AUDT, CHECLIST) so mobile typos still fire.
-- **Auto-DM** (ManyChat or similar): short, warm, brand-voice. Acknowledge their comment,
-  deliver the link + one button. Rotate a few unique public replies and space them ~3s to
-  avoid spam flags.
+- **Configure the auto-DM through Distribb:** use the same keyword in `trigger_keyword`,
+  set `delivery_method: "dm"`, and put the offered link in `delivery_url`. Write a short,
+  warm `custom_message` containing `{url}`. Enable the rule when publishing and verify
+  `comment_for_guide.automation.status` is `active`. See [social-publishing.md](social-publishing.md)
+  for the API, MCP and CLI flow. Retry configuration on the same post if needed.
 - **CTA slide copy example:** "Comment AUDIT and I will DM you the checklist."
 - **Caption CTA must mirror it exactly.** One action, no split asks.
 
@@ -358,7 +359,7 @@ authority:
 **CAPTION + CTA**
 - [ ] Caption line 1 = second hook (<=125 chars), extends the cover. Buyer keyword in the first 1 to 2 sentences.
 - [ ] Blank line before the CTA. ONE primary action, mirrored on the final slide AND caption.
-- [ ] Comment-keyword-to-DM as the click path: ONE ALL-CAPS keyword + 2 to 3 misspelling variants + a warm auto-DM. Not link-in-bio.
+- [ ] Comment-keyword-to-DM as the click path: ONE ALL-CAPS keyword + a warm auto-DM, configured and verified through Distribb.
 - [ ] Follow ask reframed as a cadence/series payoff. 0 to 5 hashtags max (or none).
 
 **SEO / AUTHORITY**
