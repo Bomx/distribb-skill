@@ -8,6 +8,10 @@ npx skills add Bomx/distribb-skill
 
 SEO automation for AI agents. Use any AI model you want. Distribb provides the infrastructure: real keyword data, backlinks from real businesses, a Google Search Console audit, CMS publishing, content calendar, social repurposing and direct social posting, Google Business Profile management (live reviews, public replies, Google posts), Microworkers campaign management, and analytics.
 
+## Publish reels with comment-triggered DMs
+
+Upload a reel, select the connected Instagram handle, publish its caption and configure a keyword-triggered DM through the API, MCP tools or CLI. The response includes the saved post ID and delivery status. Retry or update the rule on that existing post without publishing again. See [the social publishing guide](references/social-publishing.md) for requests and examples.
+
 ## Quick Start
 
 ```bash
@@ -193,7 +197,7 @@ The skill works fully with `curl` + `jq` (no install). These Python helpers ship
 
 ## MCP Server (Cursor / Claude Desktop)
 
-The MCP server exposes every Distribb endpoint as a native tool. See the [API docs](https://distribb.io/api-docs#ep-mcp) for setup.
+The remote MCP server exposes SEO workflows and social publishing with comment-triggered DMs as native tools. See the [API docs](https://distribb.io/api-docs#ep-mcp) for setup.
 
 ## Get an API Key
 

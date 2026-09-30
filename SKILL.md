@@ -1,9 +1,10 @@
 ---
 name: distribb
-description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, link building outreach playbooks, internal linking, social media repurposing and posting, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, run link building or backlink outreach campaigns, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, post to their connected social accounts, or manage Microworkers campaigns.
-homepage: https://distribb.io
-metadata: {"clawdbot":{"emoji":"🔍","requires":{"env":["DISTRIBB_API_KEY"]}}}
+description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, link building outreach playbooks, internal linking, social media repurposing, reel publishing and comment-triggered Instagram DMs, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, run link building or backlink outreach campaigns, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, post to their connected social accounts, or manage Microworkers campaigns.
+metadata: {"clawdbot": {"emoji": "🔍", "requires": {"env": ["DISTRIBB_API_KEY"]}}, "homepage": "https://distribb.io"}
 ---
+
+For a direct social publishing or comment-for-guide request, use [references/social-publishing.md](references/social-publishing.md) immediately. The SEO onboarding walkthrough below applies when the user is starting SEO setup; it is not a prerequisite for an authorized social post.
 
 ## FIRST TIME READING THIS SKILL? STOP. WALK THE USER THROUGH THIS BEFORE ANYTHING ELSE.
 
@@ -984,69 +985,11 @@ The social posts are created as drafts in the user's content calendar so they ca
 
 ### Posting to Social Media Yourself
 
-Repurposing is automatic, but you can also write a post and send it to the user's connected accounts. This is the same publisher behind the dashboard's Social Composer, so anything you send lands in their calendar next to everything else.
+Publish reels, captions and comment-triggered DMs through the Distribb API or MCP tools. Read [references/social-publishing.md](references/social-publishing.md) for the full request, upload steps, account selection, scheduling, CLI commands and verification.
 
-**1. See what is connected.**
+Use `list_social_accounts` to match the requested handle, `upload_social_media` for the video, and `publish_social_post` with an explicit `account_id`, `is_comment_for_guide: true` and `comment_for_guide_config`. Put the user's delivery link in `delivery_url`, keep `{url}` in the DM message and match the CTA keyword to `trigger_keyword`.
 
-```bash
-curl -s "https://distribb.io/api/v1/social/accounts?project_id=42" \
-  -H "Authorization: Bearer $DISTRIBB_API_KEY" | jq
-```
-
-Returns `{connected, accounts: [{platform, account_id, account_name}], instructions_for_agent}`. A project with nothing connected is not an error: it returns `200` with `connected: false`. Connecting an account is a browser OAuth step at https://distribb.io/integrations, so you cannot do it for the user.
-
-**2. Post.**
-
-```bash
-curl -s -X POST https://distribb.io/api/v1/social/publish \
-  -H "Authorization: Bearer $DISTRIBB_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "project_id": 42,
-    "content": "The three keyword mistakes that cost us six months.",
-    "platforms": ["linkedin", "x"],
-    "link": "https://example.com/blog/keyword-mistakes"
-  }' | jq
-```
-
-| Field | Notes |
-|---|---|
-| `project_id` | Required. Must be a project the API key's account owns or is a team member of. |
-| `content` | Required. The post text. |
-| `platforms` | Required. `["linkedin", "x"]`, or `[{"platform": "x", "account_id": "..."}]` when one platform has several connected accounts. |
-| `link` | Optional. Stored with the post. On LinkedIn and Facebook it is appended to the text so the preview card renders. |
-| `media_files` | Optional. `[{"type": "image", "s3_url": "..."}]`. |
-| `platform_overrides` | Optional. Per-platform copy and per-network options, keyed by platform. |
-| `scheduled_for` | Optional ISO8601 UTC. Schedules the post instead of sending it now. |
-
-The CLI wraps both:
-
-```bash
-python distribb_cli.py social:accounts --project-id 42
-python distribb_cli.py social:publish --project-id 42 --platforms linkedin,x \
-  --content "The three keyword mistakes that cost us six months." \
-  --link https://example.com/blog/keyword-mistakes
-```
-
-Supported platforms: `x` (or `twitter`), `linkedin`, `facebook`, `instagram`, `threads`, `bluesky`, `reddit`, `tiktok`, `youtube`, `pinterest`, `telegram`, `snapchat`, `googlebusiness`.
-
-**Per-platform copy beats one shared post.** Use `platform_overrides` to rewrite for each network and to reach the options only that network has:
-
-```json
-{
-  "platform_overrides": {
-    "x": {"threadSteps": ["Second tweet.", "Third tweet."]},
-    "linkedin": {"text": "A longer, first-person version.", "firstComment": "Full breakdown: https://example.com/blog/keyword-mistakes"},
-    "reddit": {"subredditName": "SEO", "title": "What six months of keyword mistakes taught us"}
-  }
-}
-```
-
-**Scheduling.** With `scheduled_for` the post is saved as scheduled and goes out within five minutes of that time, and the user can still edit or delete it in the dashboard until then. The response is a `201` with `scheduled: true`. Without it the post publishes immediately and the response carries the live URLs.
-
-**Character limits are enforced server-side**: X 280, Bluesky 300, Threads 500, Pinterest 500, Google Business 1500, Instagram and TikTok 2200, LinkedIn 3000, YouTube 5000. Going over is a `400` naming the platform and the count, so write to the limit rather than fixing it after a rejection.
-
-**Confirm the copy before you send it.** A published post is public and immediate, and deleting it later does not undo who saw it. Show the user the exact text per platform and wait for a yes, unless they have already told you to post without checking.
+Save the returned post ID and verify it with `get_social_post`. If the DM rule needs another attempt, use `configure_social_post_auto_reply` on that same post. Never republish a reel to retry delivery. These tools are shared by the ChatGPT plugin, Claude connector and other MCP clients; the REST API and CLI cover the same flow. Follow the user's existing publishing authorization without asking for it again.
 
 ### YouTube SEO With Motion Videos (`/youtube-motion-video`)
 
