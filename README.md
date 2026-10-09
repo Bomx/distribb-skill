@@ -12,6 +12,10 @@ SEO automation for AI agents. Use any AI model you want. Distribb provides the i
 
 Upload a reel, select the connected Instagram handle, publish its caption and configure a keyword-triggered DM through the API, MCP tools or CLI. The response includes the saved post ID and delivery status. Retry or update the rule on that existing post without publishing again. See [the social publishing guide](references/social-publishing.md) for requests and examples.
 
+## Use any integration
+
+Everything the user connects on Distribb's Integrations page is available to the agent: ad accounts (Meta, Google, TikTok, LinkedIn and more), social accounts with their DMs, comments and analytics, Google Search Console and Business Profile, analytics tools (Google Analytics, PostHog, Stripe...), bank accounts, outreach and email tools, databases, GitHub, and the new integrations Distribb keeps adding. `GET /api/v1/integrations/catalog` shows what is connected and gives the connect link to send the user (connecting always stays with them; the agent never collects credentials), `GET /api/v1/agent-tools` lists the tools, and `POST /api/v1/agent-tools/call` runs one with the same gates and preview-then-confirm rule as Distribb's own agent. Run `/integrations`, or see [the integrations playbook](references/integrations-playbook.md). Playbooks for [SEO](references/seo-playbook.md), [social media](references/social-media-playbook.md), [outreach](references/outreach-playbook.md) and [paid ads](references/paid-ads-playbook.md) ship with the skill.
+
 ## Quick Start
 
 ```bash
@@ -50,6 +54,8 @@ No installation required for the API. The skill uses `curl` and `jq`. The first 
 | `/review-video <competitor>` | Compile REAL, verified competitor reviews into a "<competitor> reviews" video, position your business as the alternative, and publish to YouTube + a companion article |
 | `/gbp` | Google Business Profile manager: live review triage, public review replies, Google posts, post analytics |
 | `/gov-backlinks` | Register your business in the free government directories (SAM.gov, the SBA small business listing, state vendor portals) for real .gov profile backlinks |
+| `/integrations` | See what is connected, connect new integrations, and use any of them: ad accounts, social inboxes, analytics, banks, outreach tools, databases |
+| `/paid-ads` | Audit, build and scale Meta, Google, TikTok and LinkedIn campaigns, with your approval before any spend |
 
 Command files live in `commands/`. If they are not auto-registered by your installer, run `/distribb-setup` or copy `commands/*.md` into your project's `.claude/commands/` folder.
 
@@ -177,6 +183,11 @@ Distribb can create/register project-scoped Microworkers Basic Campaigns, list w
 | [`references/youtube-motion-video-playbook.md`](./references/youtube-motion-video-playbook.md) | How `/youtube-motion-video` makes a motion-collage explainer with the super-video-maker skill, YouTube-SEOs it, and publishes it to the connected YouTube channel |
 | [`references/gov-backlinks-playbook.md`](./references/gov-backlinks-playbook.md) | How `/gov-backlinks` drives the browser through SAM.gov and the other government registries, the wizard answers and traps, and the account/tax/certification steps that always stay with the user |
 | [`references/instagram-carousel-playbook.md`](./references/instagram-carousel-playbook.md) | How `/instagram-carousel` turns a Distribb article/keyword into a save-driven Instagram carousel for SEO: the Carousel Maker JSON contract, cover/hook system, design specs, the comment-for-link play, rendering, and the publish paths |
+| [`references/integrations-playbook.md`](./references/integrations-playbook.md) | Every integration: how to find what is connected, get the user connected, act on it safely, and which connections to set up first for each goal |
+| [`references/seo-playbook.md`](./references/seo-playbook.md) | The SEO process in one page: keywords, writing for Google and AI answers, optimizing, local SEO |
+| [`references/social-media-playbook.md`](./references/social-media-playbook.md) | Social media: platform guide, cadence, repurposing articles, hooks, comment-to-DM, inbox, Reddit, measuring |
+| [`references/outreach-playbook.md`](./references/outreach-playbook.md) | Outreach: listicle outreach, editorial links, cold email deliverability, buying-signal triggers, benchmarks |
+| [`references/paid-ads-playbook.md`](./references/paid-ads-playbook.md) | Paid ads: network choice, budget math, tracking, Google and Meta setup, TikTok, LinkedIn, creative, diagnosing problems |
 
 ## Sub-skills
 

@@ -1,6 +1,6 @@
 ---
 name: distribb
-description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, link building outreach playbooks, internal linking, social media repurposing, reel publishing and comment-triggered Instagram DMs, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, run link building or backlink outreach campaigns, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, post to their connected social accounts, or manage Microworkers campaigns.
+description: Distribb is an SEO platform that handles keyword research, original data research, content publishing to WordPress/Webflow/Shopify, high-DR backlink exchange network, link building outreach playbooks, internal linking, social media repurposing, reel publishing and comment-triggered Instagram DMs, Google Business Profile management (live reviews, public review replies, Google posts), and Microworkers campaign management. Use this skill when the user wants to create SEO-optimized articles, find keywords, get real backlinks from other businesses, run link building or backlink outreach campaigns, publish to their CMS, manage their content calendar, manage their Google Business Profile and its reviews, post to their connected social accounts, or manage Microworkers campaigns. Also use it to run paid ads on Meta, Google, TikTok and LinkedIn, and to use or connect any integration the user has on Distribb (ad accounts, social inboxes and DMs, analytics tools, bank accounts, email and outreach tools, databases, GitHub, and new integrations), with playbooks for SEO, social media, outreach and paid ads.
 metadata: {"clawdbot": {"emoji": "🔍", "requires": {"env": ["DISTRIBB_API_KEY"]}}, "homepage": "https://distribb.io"}
 ---
 
@@ -55,6 +55,8 @@ This skill ships ready-to-use slash commands so the user can drive the whole wor
 | `/gbp` | Google Business Profile manager: live review triage, draft + post public review replies, queue Google Business posts, post analytics |
 | `/link-outreach` | Work your backlink outreach replies: see which listicle authors replied (and their asking price), draft and send in-thread replies from Distribb's inbox (Accelerator) |
 | `/gov-backlinks` | Register the business in free government directories (SAM.gov, the SBA small business listing, state vendor portals) by driving the user's browser, for real .gov profile backlinks |
+| `/integrations` | See what is connected, send the user connect links, and use any connected integration (ad accounts, social inboxes, analytics, banks, outreach tools, databases, new integrations) |
+| `/paid-ads` | Audit, build and scale Meta, Google, TikTok and LinkedIn campaigns through the connected ad accounts; preview first, the user approves every spend |
 
 If these commands are not yet available when the user types them, run `/distribb-setup` (or copy this skill's `commands/*.md` into the project's `.claude/commands/` folder) to register them. See the **Slash Commands** section below.
 
@@ -139,6 +141,9 @@ If you get `{"error": "Missing or invalid API key..."}` or `{"error": "Account i
 | **Social Media Repurposing** | Auto-generates social posts (X, LinkedIn, Reddit, etc.) when an article is published | Automatic (no endpoint needed) |
 | **Social Media Posting** | Write a post and send it to the user's connected accounts, now or scheduled | `GET /social/accounts`, `POST /social/publish` |
 | **Microworkers Campaign Management** | Create/register campaigns, list submissions, and rate worker slots for Reddit, Quora, YouTube, or generic proof tasks | `GET/POST /microworkers/campaigns`, `GET /microworkers/campaigns/:id/slots`, `POST /microworkers/slots/:slot_id/rate` |
+| **Every Integration** | The catalog of everything the user can connect (CMS, social accounts, ad accounts, Search Console, analytics tools, banks, databases, GitHub, new integrations): connected or not, which accounts, the tools each unlocks, and the connect link to send the user. Connecting stays with the user | `GET /integrations/catalog`, `GET /integrations/connect` |
+| **Integration Tools** | Run any connected integration's tools with the same gates as Distribb's own agent: ad campaigns, social DMs, comments and inbox, analytics, bank data, outreach, database reads, new integrations. Reads and previews in read mode; approved changes in action mode with `confirm` | `GET /agent-tools`, `POST /agent-tools/call`, `GET /agent-tools/jobs/:id` |
+| **Playbooks** | Distribb's playbooks for SEO, social media, outreach, paid ads and integrations (also in `references/`) | `GET /playbooks`, `GET /playbooks/:topic` |
 
 ---
 
@@ -1034,6 +1039,44 @@ comment-for-link playbook, and the publish paths: Graph API, a scheduler, or a r
 hand-off). The user connects their Instagram professional account first at
 https://distribb.io/integrations .
 
+### Integrations: connect anything, use everything
+
+Everything the user connects on Distribb's Integrations page is usable from here: the website CMS, social accounts, ad accounts (Meta, Google, TikTok, LinkedIn, Pinterest, X, ChatGPT Ads), Google Search Console and Business Profile, analytics tools (Google Analytics, PostHog, Mixpanel, Amplitude, Clarity, Stripe, Polar, CallRail and more), bank accounts through Plaid, databases and GitHub, and the new integrations Distribb keeps adding (Hunter, Brevo, Kit, Bing Webmaster Tools, Cloudflare and others). Which ones an account can use depends on its plan and on what Distribb has released to it, so read the catalog instead of assuming. Full guide: `references/integrations-playbook.md` (run `/integrations`).
+
+**Connecting stays with the user.** Send them the `connect_url`; it opens that integration's own card on Distribb, where they sign in or paste their key. Never ask for passwords or API keys in the chat. Confirm with the catalog (`connected: true`) before saying it is connected.
+
+```bash
+# What exists, what is connected, which tools each unlocks, the connect link (optional &category=blog|social|ads|analytics|developer|lab)
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/integrations/catalog?project_id=42" | jq .
+
+# The link and steps for one integration (key or name)
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/integrations/connect?project_id=42&integration=meta%20ads" | jq .
+
+# The tools this account can run (filter with area, q, integration; names=a,b returns each input_schema)
+curl -s -H "Authorization: Bearer $DISTRIBB_API_KEY" \
+  "https://distribb.io/api/v1/agent-tools?area=paid_ads" | jq .
+
+# Run one: mode "read" for reads and previews (changes nothing), mode "action" for an approved change
+curl -s -X POST -H "Authorization: Bearer $DISTRIBB_API_KEY" -H "Content-Type: application/json" \
+  -d '{"project_id": 42, "tool": "list_ad_campaigns", "mode": "read", "arguments": {"days": 7}}' \
+  https://distribb.io/api/v1/agent-tools/call | jq .
+```
+
+Areas: `integrations` (the connections themselves), `social` (posts, DMs, comments, inbox, Reddit, inspiration), `paid_ads`, `analytics` (every analytics tool and bank accounts), `search_console`, `google_business`, `outreach`, `databases` (read; changes are approved in the Distribb chat), `lab` (the newest integrations).
+
+Rules for running tools:
+
+- `project_id` goes at the top level, never inside `arguments`; Distribb checks the user can access the project and binds the tool to it.
+- `read_only` tools run in read mode. `preview_safe` tools (they have a `confirm` argument) change nothing without `"confirm": true`: run the preview in read mode, show the user the exact change, and only after they approve run the same call in action mode with `"confirm": true` in `arguments`. Everything else runs in action mode.
+- A call still working after about 20 seconds returns `status: running` and a `job_id`: read it with `GET /api/v1/agent-tools/jobs/<job_id>` about 30 seconds later. Do not start the same call again.
+- `tool_not_available` means this account cannot use that tool yet; `project_not_found` means a wrong project or no access; `needs_action_mode` means you tried to change something in read mode.
+
+**Playbooks:** `GET /api/v1/playbooks/<topic>` with `seo`, `social-media`, `outreach`, `paid-ads` or `integrations` (the same files are in `references/`). Read the matching one before planning work in that area.
+
+CLI: `integrations:catalog`, `integrations:connect`, `tools:list`, `tools:call`, `tools:job`, `playbooks:get`. MCP clients (Claude, ChatGPT, Cursor) get the same as `integrations_catalog`, `connect_integration`, `find_integration_tools`, `run_integration_read`, `run_integration_action`, `get_integration_result` and `get_playbook`.
+
 ### List Integrations
 
 ```bash
@@ -1766,6 +1809,8 @@ This skill ships a set of slash commands in its `commands/` folder so the user c
 | `/link-outreach` | (optional: `replies` \| `reply`) | Work backlink outreach replies: review who replied + asking price, draft + send in-thread replies from Distribb's inbox (Accelerator) |
 | `/link-building` | (optional: `invoice` \| `source-sniping` \| `tombstone` \| `fact-decay` \| `screenshots` \| `visuals`) | Run one of six give-first outreach playbooks end to end, from prospecting to a ready-to-send draft with the asset attached (`references/link-building-playbooks.md`) |
 | `/gov-backlinks` | (optional: `sam` \| `state` \| `international` \| `verify`) | Drive the user's browser through the free government registries that give a public .gov profile linking to their site, with hard handoffs at every account, tax, and certification step (`references/gov-backlinks-playbook.md`) |
+| `/integrations` | (optional: an integration or goal) | See every integration the account can connect, send connect links, and use any connected integration through the integration tools (`references/integrations-playbook.md`) |
+| `/paid-ads` | (optional: `audit` \| `launch` \| `scale` \| `creative` \| `report`) | Audit, build and scale ad campaigns on the connected ad accounts, preview first and the user approves every spend (`references/paid-ads-playbook.md`) |
 
 **Enabling the commands.** Depending on how the skill was installed, the commands may already be live. If a command is not recognized, register them once by copying this skill's command files into the project's command folder:
 

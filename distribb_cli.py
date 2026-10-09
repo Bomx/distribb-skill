@@ -33,6 +33,15 @@ Usage:
   python distribb_cli.py context:get --project-id 42
   python distribb_cli.py internal-links:get --project-id 42 --keyword "crm software"
   python distribb_cli.py integrations:list --project-id 42
+  python distribb_cli.py integrations:catalog --project-id 42 --category ads
+  python distribb_cli.py integrations:connect --project-id 42 --integration "meta ads"      # send the user the connect_url
+  python distribb_cli.py tools:list --area paid_ads
+  python distribb_cli.py tools:list --names list_ad_campaigns,set_ad_campaign_status           # input schemas
+  python distribb_cli.py tools:call --project-id 42 --tool list_ad_campaigns --args '{"days": 7}'
+  python distribb_cli.py tools:call --project-id 42 --tool set_ad_campaign_status --args '{"campaign_id": "123", "status": "PAUSED"}'   # preview
+  python distribb_cli.py tools:call --project-id 42 --tool set_ad_campaign_status --mode action --args '{"campaign_id": "123", "status": "PAUSED", "confirm": true}'   # after the user approves
+  python distribb_cli.py tools:job --job-id <job_id>
+  python distribb_cli.py playbooks:get --topic paid-ads
   python distribb_cli.py search-console:get --project-id 42 --days 28
   python distribb_cli.py ai-visibility:get --project-id 42 --view summary
   python distribb_cli.py ai-visibility:prompts:add --project-id 42 --prompt "best pickleball paddle australia" --prompt "best pickleball paddle for beginners"
@@ -383,6 +392,49 @@ def cmd_integrations_list(args):
     params = {}
     if args.project_id: params['project_id'] = args.project_id
     print(json.dumps(api('GET', '/api/v1/integrations', params=params), indent=2))
+
+
+def cmd_integrations_catalog(args):
+    params = {'project_id': args.project_id}
+    if args.category: params['category'] = args.category
+    print(json.dumps(api('GET', '/api/v1/integrations/catalog', params=params), indent=2))
+
+
+def cmd_integrations_connect(args):
+    params = {'project_id': args.project_id, 'integration': args.integration}
+    print(json.dumps(api('GET', '/api/v1/integrations/connect', params=params), indent=2))
+
+
+def cmd_tools_list(args):
+    params = {}
+    if args.area: params['area'] = args.area
+    if args.query: params['q'] = args.query
+    if args.integration: params['integration'] = args.integration
+    if args.names: params['names'] = args.names
+    print(json.dumps(api('GET', '/api/v1/agent-tools', params=params), indent=2))
+
+
+def cmd_tools_call(args):
+    arguments = {}
+    if args.args_file:
+        with open(args.args_file) as fh:
+            arguments = json.load(fh)
+    elif args.args:
+        arguments = json.loads(args.args)
+    body = {'project_id': args.project_id, 'tool': args.tool, 'mode': args.mode, 'arguments': arguments}
+    print(json.dumps(api('POST', '/api/v1/agent-tools/call', json_data=body), indent=2))
+
+
+def cmd_tools_job(args):
+    print(json.dumps(api('GET', f'/api/v1/agent-tools/jobs/{args.job_id}'), indent=2))
+
+
+def cmd_playbooks_get(args):
+    if not args.topic:
+        print(json.dumps(api('GET', '/api/v1/playbooks'), indent=2))
+        return
+    data = api('GET', f'/api/v1/playbooks/{args.topic}')
+    print(data.get('markdown') or json.dumps(data, indent=2))
 
 
 
@@ -770,6 +822,39 @@ def main():
     p = sub.add_parser('integrations:list', help='List CMS and social integrations')
     p.add_argument('--project-id', type=int)
     p.set_defaults(func=cmd_integrations_list)
+
+    p = sub.add_parser('integrations:catalog', help='Every integration this account can connect on a project: connected or not, accounts, the tools it unlocks, the connect_url to send the user')
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--category', type=str, choices=['blog', 'social', 'ads', 'analytics', 'developer', 'lab'])
+    p.set_defaults(func=cmd_integrations_catalog)
+
+    p = sub.add_parser('integrations:connect', help='The link that connects one integration, plus the steps. The user opens it; never collect their credentials')
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--integration', type=str, required=True, help='Key or name, e.g. "meta ads", "instagram", "posthog", "hunter"')
+    p.set_defaults(func=cmd_integrations_connect)
+
+    p = sub.add_parser('tools:list', help='Find the integration tools this account can run (ads, social inbox, analytics, banks, outreach, databases, new integrations)')
+    p.add_argument('--area', type=str, choices=['integrations', 'social', 'paid_ads', 'analytics', 'search_console', 'google_business', 'outreach', 'databases', 'lab'])
+    p.add_argument('--query', type=str, help='Words describing the task, e.g. "pause campaign"')
+    p.add_argument('--integration', type=str, help='Integration key or name, e.g. hunter')
+    p.add_argument('--names', type=str, help='Comma-separated tool names, to get their input_schema')
+    p.set_defaults(func=cmd_tools_list)
+
+    p = sub.add_parser('tools:call', help='Run one integration tool. --mode read for reads and previews (changes nothing); --mode action for an approved change (add "confirm": true for preview_safe tools)')
+    p.add_argument('--project-id', type=int, required=True)
+    p.add_argument('--tool', type=str, required=True)
+    p.add_argument('--mode', type=str, choices=['read', 'action'], default='read')
+    p.add_argument('--args', type=str, help='JSON object of the tool arguments')
+    p.add_argument('--args-file', type=str, help='Path to a JSON file with the tool arguments')
+    p.set_defaults(func=cmd_tools_call)
+
+    p = sub.add_parser('tools:job', help='Result of a tools:call that came back with status running')
+    p.add_argument('--job-id', type=str, required=True)
+    p.set_defaults(func=cmd_tools_job)
+
+    p = sub.add_parser('playbooks:get', help='Read a playbook: seo, social-media, outreach, paid-ads, integrations (no topic lists them)')
+    p.add_argument('--topic', type=str)
+    p.set_defaults(func=cmd_playbooks_get)
 
     p = sub.add_parser('search-console:get', help="Get the project's Google Search Console performance (queries, pages, totals)")
     p.add_argument('--project-id', type=int, required=True)
