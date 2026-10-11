@@ -309,9 +309,9 @@ localhost, no short-TTL signed URLs), containers expire ~24h, and there is a 50-
 containers / rolling-24h quota (a carousel counts as 1). Use the IG professional account id,
 not the Facebook Page id.
 
-**Path B: a scheduler (Buffer, Later, getlate/Zernio).** These publish IG image carousels
+**Path B: a scheduler (Buffer, Later and the like).** These publish IG image carousels
 natively from an ordered list of 2 to 10 image URLs plus a caption. This is the simplest path
-when the user already uses one. (Distribb's own engine publishes carousels through getlate.)
+when the user already uses one. (Distribb's own engine publishes carousels this way.)
 
 **Path C: ready-to-post hand-off.** If no programmatic access exists, deliver the pack:
 ordered slide images + the caption + the per-slide alt text + the comment keyword, and have

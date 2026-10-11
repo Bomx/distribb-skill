@@ -80,7 +80,7 @@ Recommend, do not quiz. Pick the two or three connections that move the user's g
 ### Social accounts
 
 - Each platform account the user connected appears in `list_social_accounts`. Publish with `publish_social_post` and pick the exact account the user named; projects can have several accounts on one platform.
-- Beyond posting, the social tools reach DMs, comments (reply, hide, like), mentions, reviews, post analytics, best times to post, broadcasts, comment-to-DM automations, WhatsApp, Discord, Slack and Telegram. Search them with `find_integration_tools(area: "social")`, start with `zernio_project_accounts`, then `zernio_find_operations` and `zernio_call`.
+- Beyond posting, the social tools reach DMs, comments (reply, hide, like), mentions, reviews, post analytics, best times to post, broadcasts, comment-to-DM automations, WhatsApp, Discord, Slack and Telegram. Search them with `find_integration_tools(area: "social")`, start with `social_gateway_accounts`, then `social_gateway_find_operations` and `social_gateway_call`.
 - Sending, replying, deleting or anything that costs money returns a preview first; it runs only with `confirm: true` after the user approves.
 - See the social media playbook for formats and cadence.
 

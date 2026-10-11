@@ -60,7 +60,7 @@ Avoid vague openers ("In today's fast-paced world"), stacked emojis, and hashtag
 | Edit or remove saved posts | `update_social_post`, `delete_social_post` |
 | Best posts so far | `get_top_social_posts` (ranked by views, likes, saves, shares; last 365 days by default) |
 | Ideas from the niche | `get_inspiration_setup`, `track_inspiration_targets`, `scan_social_inspiration` (can take minutes), `list_social_inspiration` |
-| DMs, comments, mentions, reviews, analytics, best times to post, broadcasts, automations | `zernio_project_accounts`, then `zernio_find_operations` and `zernio_call` |
+| DMs, comments, mentions, reviews, analytics, best times to post, broadcasts, automations | `social_gateway_accounts`, then `social_gateway_find_operations` and `social_gateway_call` |
 | Organic video for Reels, TikTok or Shorts | `create_social_video` (lands as a draft) |
 | Reddit | `get_reddit_opportunities`, `manage_reddit_radar` |
 | The distribution network (Medium, LinkedIn articles, Quora) | `get_distribution_network`, `manage_network_post` |
